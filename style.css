@@ -228,6 +228,45 @@ h2 {
   font-size: 13px;
 }
 
+.course-group {
+  margin-bottom: 12px;
+}
+
+.course-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 15px 16px;
+  border: 2px solid #06C755;
+  border-radius: 10px;
+  background: #f3fff6;
+  color: #067a34;
+  font-size: 17px;
+  font-weight: bold;
+  text-align: left;
+}
+
+.course-group-toggle:hover {
+  background: #e9f9ef;
+}
+
+.course-group-icon {
+  flex-shrink: 0;
+  margin-left: 12px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.course-group-options {
+  padding: 10px 0 2px;
+}
+
+.course-group-options[hidden] {
+  display: none;
+}
+
 .edit-hint {
   margin: 0 0 16px;
   padding: 12px 14px;

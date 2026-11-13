@@ -3,7 +3,7 @@
 ## 1. 基本情報
 
 ### タイトル
-BeEngineer 春の無料講座 LINE申込フォーム
+BeEngineer 春の無料体験講座 LINE申込フォーム
 
 ### Slug
 beengineer-line-application
@@ -164,7 +164,7 @@ for (let index = 0; index < courseDetails.length; index += 1) {
 ```javascript
 return {
   type: "flex",
-  altText: "2027年度 春の無料講座の申込を受け付けました",
+  altText: "2027年度 春の無料体験講座の申込を受け付けました",
   contents: {
     type: "bubble",
     size: "mega",

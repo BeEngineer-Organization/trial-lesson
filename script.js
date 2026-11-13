@@ -84,21 +84,26 @@ function formatCourse(course) {
   const [year, month, day] = course.date.split("-").map(Number);
   const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
   const datetime = `${month}月${day}日（${weekday}）${course.start}-${course.end}`;
+  const [startHour, startMinute] = course.start.split(":").map(Number);
+  const [endHour, endMinute] = course.end.split(":").map(Number);
+  const durationMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
   return {
     title: course.title,
     datetime,
+    durationMinutes,
     label: `${course.title} ${datetime}`
   };
 }
 
 async function loadCampuses() {
-  const response = await fetch("courses.json?v=5");
+  const response = await fetch("courses.json?v=6");
   if (!response.ok) {
     throw new Error("講座情報を読み込めませんでした。");
   }
   const catalog = await response.json();
   const closeDaysBefore = Number(catalog.closeDaysBefore);
   const deadline = Number.isFinite(closeDaysBefore) ? closeDaysBefore : 2;
+  const displayMonth = typeof catalog.displayMonth === "string" ? catalog.displayMonth : "";
   const commonCourses = Array.isArray(catalog.commonCourses) ? catalog.commonCourses : [];
   CAMPUSES = (catalog.campuses || []).map(campus => ({
     name: campus.name,
@@ -113,6 +118,7 @@ async function loadCampuses() {
       .slice()
       .sort(compareCourses)
       .filter(course => isCourseOpen(course.date, deadline))
+      .filter(course => !displayMonth || course.date.startsWith(`${displayMonth}-`))
       .map(formatCourse)
   })).filter(campus => campus.name && campus.courses.length > 0);
 }
@@ -181,7 +187,7 @@ function refreshNav(step) {
   const stepNumber = Number(step.dataset.step);
   nextBtn.disabled = !isStepValid(stepNumber);
   if (returnToConfirm && stepNumber === 2) {
-    nextBtn.textContent = "無料講座を選ぶ";
+    nextBtn.textContent = "無料体験講座を選ぶ";
   } else if (returnToConfirm) {
     nextBtn.textContent = "確認画面に戻る";
   } else if (stepNumber === 5) {
@@ -244,13 +250,58 @@ function renderCourses() {
   if (!campus || campus.courses.length === 0) {
     const note = document.createElement("p");
     note.className = "hint";
-    note.textContent = "この校舎で申し込みできる無料講座はありません。";
+    note.textContent = "この校舎で申し込みできる無料体験講座はありません。";
     list.appendChild(note);
     refreshNav(document.querySelector(".step[data-step='3']"));
     return;
   }
-  campus.courses.forEach(course => {
-    list.appendChild(createChoice("checkbox", "courses", course.label, keep.has(course.label), course));
+
+  const groups = [
+    { title: "【1時間講座】", durationMinutes: 60 },
+    { title: "【2時間講座】", durationMinutes: 120 }
+  ];
+
+  groups.forEach(group => {
+    const courses = campus.courses.filter(course => course.durationMinutes === group.durationMinutes);
+    if (courses.length === 0) return;
+
+    const section = document.createElement("section");
+    section.className = "course-group";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "course-group-toggle";
+    toggle.setAttribute("aria-expanded", "false");
+    const title = document.createElement("span");
+    title.textContent = group.title;
+    const icon = document.createElement("span");
+    icon.className = "course-group-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "＋";
+    toggle.append(title, icon);
+
+    const options = document.createElement("div");
+    options.className = "course-group-options";
+    options.hidden = true;
+    courses.forEach(course => {
+      options.appendChild(createChoice("checkbox", "courses", course.label, keep.has(course.label), course));
+    });
+
+    const hasSelection = courses.some(course => keep.has(course.label));
+    if (hasSelection) {
+      options.hidden = false;
+      toggle.setAttribute("aria-expanded", "true");
+      icon.textContent = "−";
+    }
+
+    toggle.addEventListener("click", () => {
+      const willOpen = options.hidden;
+      options.hidden = !willOpen;
+      toggle.setAttribute("aria-expanded", String(willOpen));
+      icon.textContent = willOpen ? "−" : "＋";
+    });
+
+    section.append(toggle, options);
+    list.appendChild(section);
   });
   refreshNav(document.querySelector(".step[data-step='3']"));
 }
@@ -260,7 +311,7 @@ function renderConfirm() {
   const rows = [
     ["新学年", data.grade, 1],
     ["校舎", data.campus, 2],
-    ["無料講座", data.courses.join("\n"), 3],
+    ["申込講座", data.courses.join("\n"), 3],
     ["参加者氏名", data.name, 4],
     ["学校名", data.school, 5]
   ];
@@ -357,7 +408,7 @@ function buildMessage(data) {
     return course.datetime ? `・${course.title}\n　${course.datetime}` : `・${course.title}`;
   }).join("\n");
   return [
-    "【2027年度 春の無料講座 申込】",
+    "【2027年度 春の無料体験講座 申込】",
     `新学年：${data.grade}`,
     `校舎：${data.campus}`,
     "申込講座：",
@@ -484,7 +535,7 @@ function buildFlexMessage(data) {
 
   return {
     type: "flex",
-    altText: "2027年度 春の無料講座の申込を受け付けました",
+    altText: "2027年度 春の無料体験講座の申込を受け付けました",
     contents: {
       type: "bubble",
       size: "mega",
@@ -495,7 +546,7 @@ function buildFlexMessage(data) {
         paddingAll: "18px",
         contents: [
           { type: "text", text: "申込を受け付けました", color: "#FFFFFF", weight: "bold", size: "xl", wrap: true },
-          { type: "text", text: "2027年度 春の無料講座", color: "#E7FFEF", size: "md", margin: "sm", wrap: true }
+          { type: "text", text: "2027年度 春の無料体験講座", color: "#E7FFEF", size: "md", margin: "sm", wrap: true }
         ]
       },
       body: {
@@ -756,7 +807,7 @@ window.addEventListener("DOMContentLoaded", () => {
   loadCampuses()
     .then(() => {
       if (CAMPUSES.length === 0) {
-        showError("現在申し込みできる無料講座はありません。");
+        showError("現在申し込みできる無料体験講座はありません。");
         return;
       }
       setupForm();

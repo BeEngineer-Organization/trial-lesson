@@ -1,5 +1,6 @@
 {
   "closeDaysBefore": 2,
+  "displayMonth": "2027-02",
   "commonCourses": [
     {
       "title": "Webページ開発体験",
