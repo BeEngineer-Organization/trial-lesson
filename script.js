@@ -136,8 +136,13 @@ function findCampus(name) {
 function renderCampusPreview() {
   const campus = findCampus(selectedRadio("campus"));
   const preview = document.getElementById("campus-preview");
-  if (!preview) return;
-  preview.hidden = !campus;
+  const toggle = document.getElementById("campus-preview-toggle");
+  if (!preview || !toggle) return;
+  toggle.hidden = !campus;
+  toggle.setAttribute("aria-expanded", "false");
+  document.getElementById("campus-preview-toggle-label").textContent = "校舎住所を確認する";
+  document.getElementById("campus-preview-toggle-icon").textContent = "＋";
+  preview.hidden = true;
   if (!campus) return;
 
   document.getElementById("campus-preview-name").textContent = campus.name;
@@ -151,6 +156,17 @@ function renderCampusPreview() {
   const mapLink = document.getElementById("campus-map-link");
   mapLink.href = campus.mapUrl;
   mapLink.hidden = !campus.mapUrl;
+}
+
+function toggleCampusPreview() {
+  const preview = document.getElementById("campus-preview");
+  const toggle = document.getElementById("campus-preview-toggle");
+  const willOpen = preview.hidden;
+  preview.hidden = !willOpen;
+  toggle.setAttribute("aria-expanded", String(willOpen));
+  document.getElementById("campus-preview-toggle-label").textContent =
+    willOpen ? "校舎住所を閉じる" : "校舎住所を確認する";
+  document.getElementById("campus-preview-toggle-icon").textContent = willOpen ? "−" : "＋";
 }
 
 function selectedCourses() {
@@ -798,6 +814,7 @@ function setupForm() {
   });
   document.getElementById("submit-btn").addEventListener("click", submitApplication);
   document.getElementById("consent-btn").addEventListener("click", startApplication);
+  document.getElementById("campus-preview-toggle").addEventListener("click", toggleCampusPreview);
   document.getElementById("restart-btn").addEventListener("click", resetForm);
   document.getElementById("back-btn").addEventListener("click", closeLine);
 }

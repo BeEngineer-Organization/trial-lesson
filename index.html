@@ -6,7 +6,7 @@
   <title>春の無料体験講座の申込</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <meta http-equiv="Cache-Control" content="no-cache">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
   <script>
     (() => {
       const currentBuild = "__BUILD_VERSION__";
@@ -56,6 +56,10 @@
           <p class="progress">2 / 5</p>
           <p class="question">校舎を選んでください。</p>
           <div id="campus-list"></div>
+          <button type="button" id="campus-preview-toggle" class="campus-preview-toggle" aria-expanded="false" hidden>
+            <span id="campus-preview-toggle-label">校舎住所を確認する</span>
+            <span id="campus-preview-toggle-icon" aria-hidden="true">＋</span>
+          </button>
           <div id="campus-preview" class="campus-preview" hidden>
             <p id="campus-preview-name" class="campus-preview-name"></p>
             <p id="campus-preview-postal" class="campus-preview-postal"></p>
@@ -115,6 +119,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=6"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>
