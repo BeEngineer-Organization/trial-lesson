@@ -96,7 +96,7 @@ function formatCourse(course) {
 }
 
 async function loadCampuses() {
-  const response = await fetch("courses.json?v=6");
+  const response = await fetch("courses.json?v=7");
   if (!response.ok) {
     throw new Error("講座情報を読み込めませんでした。");
   }
