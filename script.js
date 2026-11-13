@@ -83,12 +83,21 @@ function isCourseOpen(dateStr, closeDaysBefore) {
 function formatCourse(course) {
   const [year, month, day] = course.date.split("-").map(Number);
   const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
-  const datetime = `${month}月${day}日（${weekday}）${course.start}-${course.end}`;
+  const isSaturday = weekday === "土";
+  const isSunday = weekday === "日";
+  const weekdayLabel = isSaturday || isSunday ? weekday : `${weekday}・祝`;
+  const dateText = `${month}月${day}日`;
+  const timeText = `${course.start}-${course.end}`;
+  const datetime = `${dateText}（${weekdayLabel}）${timeText}`;
   const [startHour, startMinute] = course.start.split(":").map(Number);
   const [endHour, endMinute] = course.end.split(":").map(Number);
   const durationMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
   return {
     title: course.title,
+    dateText,
+    weekdayLabel,
+    weekdayClass: isSaturday ? "is-saturday" : "is-sunday-or-holiday",
+    timeText,
     datetime,
     durationMinutes,
     label: `${course.title} ${datetime}`
@@ -229,7 +238,7 @@ function createChoice(type, name, value, checked, course) {
     title.textContent = course.title;
     const datetime = document.createElement("span");
     datetime.className = "choice-datetime";
-    datetime.textContent = course.datetime;
+    appendStyledDatetime(datetime, course);
     text.append(title, datetime);
   } else {
     text.textContent = value;
@@ -248,6 +257,13 @@ function createChoice(type, name, value, checked, course) {
   });
   label.append(input, text);
   return label;
+}
+
+function appendStyledDatetime(container, course) {
+  const weekday = document.createElement("span");
+  weekday.className = `course-weekday ${course.weekdayClass}`;
+  weekday.textContent = course.weekdayLabel;
+  container.append(`${course.dateText}（`, weekday, `）${course.timeText}`);
 }
 
 function clearCourseSelections() {
@@ -371,7 +387,8 @@ function appendCourseLines(container, labels) {
       const datetimeLabel = document.createElement("span");
       datetimeLabel.className = "confirm-course-datetime-label";
       datetimeLabel.textContent = "日時";
-      datetime.append(datetimeLabel, course.datetime);
+      datetime.append(datetimeLabel);
+      appendStyledDatetime(datetime, course);
     }
     block.append(title, datetime);
     container.appendChild(block);

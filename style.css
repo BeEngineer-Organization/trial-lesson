@@ -314,6 +314,18 @@ h2 {
   line-height: 1.4;
 }
 
+.course-weekday {
+  font-weight: bold;
+}
+
+.course-weekday.is-saturday {
+  color: #1565c0;
+}
+
+.course-weekday.is-sunday-or-holiday {
+  color: #d32f2f;
+}
+
 .confirm-course-datetime {
   display: block;
   margin-top: 6px;
