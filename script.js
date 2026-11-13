@@ -92,13 +92,14 @@ function formatCourse(course) {
 }
 
 async function loadCampuses() {
-  const response = await fetch("courses.json?v=4");
+  const response = await fetch("courses.json?v=5");
   if (!response.ok) {
     throw new Error("講座情報を読み込めませんでした。");
   }
   const catalog = await response.json();
   const closeDaysBefore = Number(catalog.closeDaysBefore);
   const deadline = Number.isFinite(closeDaysBefore) ? closeDaysBefore : 2;
+  const commonCourses = Array.isArray(catalog.commonCourses) ? catalog.commonCourses : [];
   CAMPUSES = (catalog.campuses || []).map(campus => ({
     name: campus.name,
     lineUrl: campus.lineUrl,
@@ -108,7 +109,7 @@ async function loadCampuses() {
     mapUrl: campus.address
       ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(`${campus.postalCode || ""} ${campus.address}`.trim())
       : "",
-    courses: (campus.courses || [])
+    courses: (commonCourses.length > 0 ? commonCourses : (campus.courses || []))
       .slice()
       .sort(compareCourses)
       .filter(course => isCourseOpen(course.date, deadline))
