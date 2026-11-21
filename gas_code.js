@@ -1,5 +1,5 @@
 // データ保存処理
-// 保存先シート: 申込
+// 保存先シート: LINE申込
 // 列: 送信日時, 新学年, 校舎, 講座名, 日時, 参加者氏名, 学校名, 電話番号, LINE表示名
 // 複数講座は講座ごとに1行とし、申込者情報は各行へ同じ内容を保存する。
 //
@@ -97,9 +97,9 @@ function getLineDisplayName(userId) {
 
 function appendApplication(data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("申込");
+  var sheet = ss.getSheetByName("LINE申込");
   if (!sheet) {
-    sheet = ss.insertSheet("申込", 0);
+    sheet = ss.insertSheet("LINE申込", 0);
   }
   ss.setActiveSheet(sheet);
   ss.moveActiveSheet(1);
@@ -219,7 +219,7 @@ function listFrom(values) {
 
 function reformatCourseColumn() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("申込");
+  var sheet = ss.getSheetByName("LINE申込");
   if (!sheet) return 0;
   ensureApplicationSheet(sheet);
   expandCourseRows(sheet);
