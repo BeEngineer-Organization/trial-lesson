@@ -42,8 +42,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     if (data && Array.isArray(data.events)) {
       handleLineWebhook(data);
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", version: 8 }))
-        .setMimeType(ContentService.MimeType.JSON);
+      return HtmlService.createHtmlOutput("OK");
     }
     var result = saveApplication(data);
     return ContentService.createTextOutput(JSON.stringify(result))
