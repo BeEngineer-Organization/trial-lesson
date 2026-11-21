@@ -566,7 +566,7 @@ function flexCourse(label, index) {
 function flexLogo() {
   return {
     type: "image",
-    url: "https://keigo-fujiwara.github.io/BeEn_LINE_test/logo_color.png",
+    url: "https://beengineer-organization.github.io/trial-lesson/logo_color.png",
     size: "lg",
     aspectRatio: "5:2",
     aspectMode: "fit",
