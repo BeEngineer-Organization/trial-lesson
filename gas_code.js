@@ -1,13 +1,13 @@
 // データ保存処理
 // 保存先シート: 申込
-// 列: 送信日時, 新学年, 校舎, 講座名, 日時, 参加者氏名, 学校名, LINE表示名
+// 列: 送信日時, 新学年, 校舎, 講座名, 日時, 参加者氏名, 学校名, 電話番号, LINE表示名
 // 複数講座は講座ごとに1行とし、申込者情報は各行へ同じ内容を保存する。
 //
 // トーク以外（リッチメニューなど）から開いた申込を、公式アカウントから本人のLINEへ送るには
 // スクリプト プロパティ LINE_CHANNEL_ACCESS_TOKEN にチャネルアクセストークンを設定する。
 // 友だち追加時のカードのボタンは、このLIFFを開く。
 var LIFF_URL = "https://liff.line.me/2011967447-JLPxTrfL";
-var HEADERS = ["送信日時", "新学年", "校舎", "講座名", "日時", "参加者氏名", "学校名", "LINE表示名"];
+var HEADERS = ["送信日時", "新学年", "校舎", "講座名", "日時", "参加者氏名", "学校名", "電話番号", "LINE表示名"];
 
 function doGet(e) {
   if (e && e.parameter && e.parameter.webhook === "1") {
@@ -17,7 +17,7 @@ function doGet(e) {
   }
   reformatCourseColumn();
   if (!e || !e.parameter || !e.parameter.payload) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", version: 7 }))
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", version: 8 }))
       .setMimeType(ContentService.MimeType.JSON);
   }
   var callback = "callback";
@@ -42,7 +42,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     if (data && Array.isArray(data.events)) {
       handleLineWebhook(data);
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", version: 7 }))
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", version: 8 }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     var result = saveApplication(data);
@@ -120,6 +120,7 @@ function appendApplication(data) {
       courses.datetimes[i] || "",
       data.name || "",
       data.school || "",
+      data.phone || "",
       data.lineName || ""
     ]);
   }
@@ -150,11 +151,18 @@ function ensureApplicationSheet(sheet) {
   } else if (headerD === "無料講座") {
     sheet.getRange(1, 4).setValue("講座名");
   }
-  if (String(sheet.getRange(1, 8).getValue() || "") === "LINEユーザーID") {
-    sheet.getRange(1, 8).clearContent();
+  var headerH = String(sheet.getRange(1, 8).getValue() || "");
+  if (headerH === "LINE表示名" || headerH === "LINEユーザーID") {
+    sheet.insertColumnBefore(8);
   }
-  if (String(sheet.getRange(1, 8).getValue() || "") !== "LINE表示名") {
-    sheet.getRange(1, 8).setValue("LINE表示名");
+  if (String(sheet.getRange(1, 8).getValue() || "") !== "電話番号") {
+    sheet.getRange(1, 8).setValue("電話番号");
+  }
+  if (String(sheet.getRange(1, 9).getValue() || "") === "LINEユーザーID") {
+    sheet.getRange(1, 9).clearContent();
+  }
+  if (String(sheet.getRange(1, 9).getValue() || "") !== "LINE表示名") {
+    sheet.getRange(1, 9).setValue("LINE表示名");
   }
 }
 
@@ -190,7 +198,7 @@ function splitCourseLines(titles, datetimes, courses) {
 
 function splitCourseLine(line) {
   var text = String(line || "");
-  var match = text.match(/^(.*)\s(\d{1,2}月\d{1,2}日（.）\d{1,2}:\d{2}-\d{1,2}:\d{2})$/);
+  var match = text.match(/^(.*)\s(\d{1,2}月\d{1,2}日（[^）]+）\d{1,2}:\d{2}-\d{1,2}:\d{2})$/);
   if (!match) return { title: text, datetime: "" };
   return { title: match[1], datetime: match[2] };
 }
@@ -252,6 +260,7 @@ function layoutCourseColumns(sheet) {
   if (sheet.getColumnWidth(4) < 280) sheet.setColumnWidth(4, 280);
   if (sheet.getColumnWidth(5) < 240) sheet.setColumnWidth(5, 240);
   if (sheet.getColumnWidth(8) < 160) sheet.setColumnWidth(8, 160);
+  if (sheet.getColumnWidth(9) < 160) sheet.setColumnWidth(9, 160);
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return 0;
   var range = sheet.getRange(2, 4, lastRow - 1, 2);

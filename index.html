@@ -6,7 +6,7 @@
   <title>春の無料体験講座の申込</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <meta http-equiv="Cache-Control" content="no-cache">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
   <script>
     (() => {
       const currentBuild = "__BUILD_VERSION__";
@@ -34,7 +34,7 @@
       <p class="consent-lead">安心してお申し込みいただくために、個人情報の取り扱いについてご確認ください。</p>
       <div class="consent-box">
         <p class="consent-title">個人情報の利用について</p>
-        <p>お申し込みの際に、新学年・校舎・申込講座・参加者氏名・学校名・LINE表示名を取得します。</p>
+        <p>お申し込みの際に、新学年・校舎・申込講座・参加者氏名・学校名・電話番号・LINE表示名を取得します。</p>
         <p>ご入力いただいた個人情報は、BeEngineer春の無料体験講座の受付、ご連絡および当日の運営にのみ使用します。法令に基づく場合を除き、ご本人の同意なく第三者へ提供することはありません。</p>
       </div>
       <p class="consent-agreement">上記の内容をご確認のうえ、<br>同意してお申し込みください。</p>
@@ -46,14 +46,14 @@
       <h2>2027年度 春の無料体験講座</h2>
       <form id="apply-form">
         <section class="step" data-step="1" data-required="true">
-          <p class="progress">1 / 5</p>
+          <p class="progress">1 / 6</p>
           <p class="question">4月からの新学年を選んでください。</p>
           <div id="grade-list"></div>
           <button type="button" class="next-btn" disabled>次へ進む</button>
         </section>
 
         <section class="step" data-step="2" data-required="true">
-          <p class="progress">2 / 5</p>
+          <p class="progress">2 / 6</p>
           <p class="question">校舎を選んでください。</p>
           <div id="campus-list"></div>
           <button type="button" id="campus-preview-toggle" class="campus-preview-toggle" aria-expanded="false" hidden>
@@ -71,7 +71,7 @@
         </section>
 
         <section class="step" data-step="3" data-required="true">
-          <p class="progress">3 / 5</p>
+          <p class="progress">3 / 6</p>
           <p class="question">受講する無料体験講座を選んでください。</p>
           <p class="hint">複数選択できます。</p>
           <div id="course-list"></div>
@@ -79,20 +79,28 @@
         </section>
 
         <section class="step" data-step="4" data-required="true">
-          <p class="progress">4 / 5</p>
+          <p class="progress">4 / 6</p>
           <p class="question">参加者氏名を入力してください。</p>
           <input type="text" id="participant" name="participant" maxlength="50" autocomplete="name" placeholder="例）ビーエン太郎">
           <button type="button" class="next-btn" disabled>次へ進む</button>
         </section>
 
         <section class="step" data-step="5" data-required="true">
-          <p class="progress">5 / 5</p>
+          <p class="progress">5 / 6</p>
           <p class="question">学校名を入力してください。</p>
           <input type="text" id="school" name="school" maxlength="80" autocomplete="organization" placeholder="例）〇〇中学校">
+          <button type="button" class="next-btn" disabled>次へ進む</button>
+        </section>
+
+        <section class="step" data-step="6" data-required="true">
+          <p class="progress">6 / 6</p>
+          <p class="question">電話番号を入力してください。</p>
+          <input type="tel" id="phone" name="phone" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="例）090-1234-5678">
+          <p class="input-hint">ハイフンあり・なし、どちらでも入力できます。</p>
           <button type="button" class="next-btn" disabled>確認画面へ</button>
         </section>
 
-        <section class="step" data-step="6">
+        <section class="step" data-step="7">
           <p class="question">申込内容の確認</p>
           <p class="edit-hint">下の項目をタップすると、<br>その内容を修正できます。</p>
           <div id="confirm-list"></div>
@@ -119,6 +127,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=8"></script>
+  <script src="script.js?v=9"></script>
 </body>
 </html>

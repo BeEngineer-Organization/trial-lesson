@@ -192,8 +192,16 @@ function readForm() {
     campus: selectedRadio("campus"),
     courses: selectedCourses(),
     name: document.getElementById("participant").value.trim(),
-    school: document.getElementById("school").value.trim()
+    school: document.getElementById("school").value.trim(),
+    phone: document.getElementById("phone").value.trim()
   };
+}
+
+function isPhoneValid(value) {
+  const digits = String(value || "")
+    .replace(/[０-９]/g, character => String.fromCharCode(character.charCodeAt(0) - 0xFEE0))
+    .replace(/\D/g, "");
+  return digits.length === 10 || digits.length === 11;
 }
 
 function isStepValid(stepNumber) {
@@ -203,6 +211,7 @@ function isStepValid(stepNumber) {
   if (stepNumber === 3) return data.courses.length > 0;
   if (stepNumber === 4) return Boolean(data.name);
   if (stepNumber === 5) return Boolean(data.school);
+  if (stepNumber === 6) return isPhoneValid(data.phone);
   return true;
 }
 
@@ -215,7 +224,7 @@ function refreshNav(step) {
     nextBtn.textContent = "無料体験講座を選ぶ";
   } else if (returnToConfirm) {
     nextBtn.textContent = "確認画面に戻る";
-  } else if (stepNumber === 5) {
+  } else if (stepNumber === 6) {
     nextBtn.textContent = "確認画面へ";
   } else {
     nextBtn.textContent = "次へ進む";
@@ -345,7 +354,8 @@ function renderConfirm() {
     ["校舎", data.campus, 2],
     ["申込講座", data.courses.join("\n"), 3],
     ["参加者氏名", data.name, 4],
-    ["学校名", data.school, 5]
+    ["学校名", data.school, 5],
+    ["電話番号", data.phone, 6]
   ];
   const list = document.getElementById("confirm-list");
   list.replaceChildren();
@@ -402,7 +412,7 @@ function showStep(stepNumber) {
   });
   if (stepNumber === 3) renderCourses();
   if (stepNumber === 2) renderCampusPreview();
-  if (stepNumber === 6) renderConfirm();
+  if (stepNumber === 7) renderConfirm();
   const active = document.querySelector(".step.is-active");
   if (active) refreshNav(active);
 }
@@ -420,9 +430,9 @@ function goNext(step) {
     showStep(3);
     return;
   }
-  if (returnToConfirm || stepNumber >= 5) {
+  if (returnToConfirm || stepNumber >= 6) {
     returnToConfirm = false;
-    showStep(6);
+    showStep(7);
     return;
   }
   showStep(stepNumber + 1);
@@ -448,6 +458,7 @@ function buildMessage(data) {
     courses,
     `参加者氏名：${data.name}`,
     `学校名：${data.school}`,
+    `電話番号：${data.phone}`,
     ...campusGuideLines(data.campus)
   ].join("\n");
 }
@@ -593,6 +604,7 @@ function buildFlexMessage(data) {
           flexField("校舎", data.campus),
           flexField("参加者氏名", data.name),
           flexField("学校名", data.school),
+          flexField("電話番号", data.phone),
           { type: "separator" },
           { type: "text", text: "申込講座", size: "sm", color: "#06C755", weight: "bold" },
           ...courseContents,
@@ -734,8 +746,15 @@ function requestGasByScript(payload) {
 
 async function submitApplication() {
   const data = readForm();
-  if (!data.grade || !data.campus || data.courses.length === 0 || !data.name || !data.school) {
-    showStep(!data.grade ? 1 : !data.campus ? 2 : data.courses.length === 0 ? 3 : !data.name ? 4 : 5);
+  if (!data.grade || !data.campus || data.courses.length === 0 || !data.name || !data.school || !isPhoneValid(data.phone)) {
+    showStep(
+      !data.grade ? 1
+        : !data.campus ? 2
+          : data.courses.length === 0 ? 3
+            : !data.name ? 4
+              : !data.school ? 5
+                : 6
+    );
     return;
   }
 
@@ -820,7 +839,7 @@ function setupForm() {
     });
   });
 
-  ["participant", "school"].forEach(id => {
+  ["participant", "school", "phone"].forEach(id => {
     document.getElementById(id).addEventListener("input", event => {
       refreshNav(event.target.closest(".step"));
     });

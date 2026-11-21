@@ -456,11 +456,12 @@ h2 {
 }
 
 .step textarea,
-.step input[type="text"] {
+.step input[type="text"],
+.step input[type="tel"] {
   margin-bottom: 16px;
 }
 
-select, textarea, input[type="text"] {
+select, textarea, input[type="text"], input[type="tel"] {
   width: 100%;
   padding: 12px;
   border: 1px solid #ddd;
@@ -468,6 +469,13 @@ select, textarea, input[type="text"] {
   box-sizing: border-box;
   font-size: 16px;
   font-family: inherit;
+}
+
+.input-hint {
+  margin: -8px 0 16px;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 button {
