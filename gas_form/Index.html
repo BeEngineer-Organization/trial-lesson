@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>春の無料体験講座の申込</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .card {
+      box-sizing: border-box;
+      width: 100%;
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      max-width: 440px;
+      margin: 0 auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(3px);
+    }
+
+    .loading-overlay[hidden] { display: none; }
+
+    .loading-panel {
+      width: min(260px, 100%);
+      padding: 28px 24px;
+      background: #fff;
+      border: 2px solid #0f9b20;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+      text-align: center;
+    }
+
+    .loading-spinner {
+      width: 42px;
+      height: 42px;
+      margin: 0 auto 16px;
+      border: 5px solid #d9f3dd;
+      border-top-color: #0f9b20;
+      border-radius: 50%;
+      animation: loading-spin 0.8s linear infinite;
+    }
+
+    .loading-text {
+      min-height: 30px;
+      margin: 0;
+      color: #0f9b20;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    #loading-dots {
+      display: inline-block;
+      width: 28px;
+      text-align: left;
+    }
+
+    .loading-note {
+      margin: 8px 0 0;
+      color: #666;
+      font-size: 13px;
+    }
+
+    @keyframes loading-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .brand-logo {
+      display: block;
+      width: 168px;
+      height: auto;
+      margin: 0 auto 16px;
+    }
+
+    h2 {
+      color: #06C755;
+      text-align: center;
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .done-text {
+      margin: 0 0 16px;
+      text-align: center;
+      white-space: pre-line;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .line-guide {
+      margin: 0 0 16px;
+      padding: 14px;
+      background: #f4fbf6;
+      border: 2px solid #0f9b20;
+      border-radius: 8px;
+      color: #0b6b16;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+
+    .consent-lead {
+      margin: 0 0 16px;
+      color: #444;
+      font-size: 15px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .consent-box {
+      margin-bottom: 14px;
+      padding: 16px;
+      background: #f4fbf6;
+      border: 1px solid #a9deb2;
+      border-radius: 10px;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .consent-box p { margin: 0 0 12px; }
+    .consent-box p:last-child { margin-bottom: 0; }
+
+    .consent-title {
+      color: #0f9b20;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .consent-agreement {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: bold;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .privacy-link {
+      display: block;
+      margin-bottom: 16px;
+      color: #0f9b20;
+      font-size: 13px;
+      text-align: center;
+      text-decoration: underline;
+    }
+
+    .progress {
+      margin: 0 0 8px;
+      text-align: center;
+      color: #06C755;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .question {
+      margin: 0 0 18px;
+      font-size: 18px;
+      font-weight: bold;
+      line-height: 1.5;
+      color: #222;
+    }
+
+    .step { display: none; }
+    .step.is-active { display: block; }
+
+    .hint {
+      margin: -8px 0 16px;
+      text-align: center;
+      color: #777;
+      font-size: 13px;
+    }
+
+    .course-group { margin-bottom: 12px; }
+
+    .course-group-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin: 0;
+      padding: 15px 16px;
+      border: 2px solid #06C755;
+      border-radius: 10px;
+      background: #f3fff6;
+      color: #067a34;
+      font-size: 17px;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .course-group-toggle:hover { background: #e9f9ef; }
+
+    .course-group-icon {
+      flex-shrink: 0;
+      margin-left: 12px;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .course-group-options { padding: 10px 0 2px; }
+    .course-group-options[hidden] { display: none; }
+
+    .edit-hint {
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      background: #e9f9ef;
+      border: 2px solid #06C755;
+      border-radius: 8px;
+      color: #067a34;
+      font-size: 15px;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .choice {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+      padding: 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: normal;
+      cursor: pointer;
+    }
+
+    .choice > span { flex: 1; min-width: 0; }
+
+    .choice-title,
+    .confirm-course-title {
+      display: block;
+      font-weight: bold;
+      line-height: 1.4;
+    }
+
+    .choice-datetime {
+      display: block;
+      margin-top: 2px;
+      color: #666;
+      font-size: 14px;
+      font-weight: normal;
+      line-height: 1.4;
+    }
+
+    .course-weekday { font-weight: bold; }
+    .course-weekday.is-saturday { color: #1565c0; }
+    .course-weekday.is-sunday-or-holiday { color: #d32f2f; }
+
+    .confirm-course-datetime {
+      display: block;
+      margin-top: 6px;
+      color: #222;
+      font-size: 15px;
+      font-weight: normal;
+      line-height: 1.4;
+    }
+
+    .confirm-course-datetime-label {
+      display: inline-block;
+      margin-right: 8px;
+      color: #0f9b20;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .confirm-course {
+      display: block;
+      padding: 10px 12px;
+      background: #f4fbf6;
+      border-radius: 8px;
+    }
+
+    .confirm-course + .confirm-course { margin-top: 10px; }
+
+    .choice input {
+      width: 18px;
+      height: 18px;
+      margin: 3px 0 0;
+      accent-color: #06C755;
+      flex-shrink: 0;
+    }
+
+    .choice.is-selected {
+      border-color: #06C755;
+      background: #f3fff6;
+    }
+
+    .campus-preview-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin: 4px 0 10px;
+      padding: 13px 14px;
+      border: 1px solid #a9deb2;
+      border-radius: 8px;
+      background: #f4fbf6;
+      color: #067a34;
+      font-size: 15px;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .campus-preview-toggle:hover { background: #e9f9ef; }
+    .campus-preview-toggle[hidden] { display: none; }
+
+    #campus-preview-toggle-icon {
+      flex-shrink: 0;
+      margin-left: 12px;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .campus-preview {
+      margin: 4px 0 16px;
+      padding: 14px;
+      background: #f4fbf6;
+      border: 1px solid #a9deb2;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .campus-preview[hidden] { display: none; }
+    .campus-preview p { margin: 0; }
+
+    .campus-preview-name {
+      color: #0f9b20;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .campus-preview-postal {
+      margin-top: 6px !important;
+      color: #555;
+    }
+
+    .campus-preview-address { color: #222; }
+
+    .campus-preview-access {
+      margin-top: 6px !important;
+      color: #555;
+    }
+
+    .campus-map-link {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #0f9b20;
+      border-radius: 7px;
+      color: #0f9b20;
+      font-weight: bold;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .campus-map-link[hidden] { display: none; }
+
+    .step textarea,
+    .step input[type="text"],
+    .step input[type="tel"],
+    .step input[type="email"] {
+      margin-bottom: 16px;
+    }
+
+    select, textarea, input[type="text"], input[type="tel"], input[type="email"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 16px;
+      font-family: inherit;
+    }
+
+    .input-hint {
+      margin: -8px 0 16px;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .input-hint.is-alert {
+      color: #d9534f;
+      font-weight: bold;
+    }
+
+    .consent-hint {
+      margin: 4px 0 16px;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .consent-hint.is-alert {
+      color: #d9534f;
+      font-weight: bold;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #06C755;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    button.confirm-item {
+      display: block;
+      background: #fff;
+      color: #222;
+      border: 1px solid #ddd;
+      font-weight: normal;
+      text-align: left;
+      margin-bottom: 10px;
+    }
+
+    .confirm-label {
+      display: block;
+      color: #06C755;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .confirm-value {
+      display: block;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    .line-link {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 14px;
+      background: #06C755;
+      color: #fff;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      text-align: center;
+      text-decoration: none;
+      margin-bottom: 10px;
+    }
+
+    #restart-btn {
+      background: #fff;
+      color: #06C755;
+      border: 1px solid #06C755;
+    }
+
+    #back-btn {
+      background: #fff;
+      color: #666;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+    }
+
+    #status {
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      padding: 20px 0;
+    }
+
+    .error-msg {
+      color: #d9534f;
+      font-weight: bold;
+      text-align: center;
+      padding: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img class="brand-logo" src="https://beengineer-organization.github.io/trial-lesson/logo_color.png" alt="BeEngineer" onerror="this.style.display='none'">
+    <div id="status" style="display:none;"></div>
+
+    <div id="consent-step">
+      <h2>春の無料体験講座のお申し込み</h2>
+      <p class="consent-lead">安心してお申し込みいただくために、個人情報の取り扱いについてご確認ください。</p>
+      <div class="consent-box">
+        <p class="consent-title">個人情報の利用について</p>
+        <p>お申し込みの際に、新学年・校舎・申込講座・参加者氏名・学校名・メールアドレス・電話番号を取得します。</p>
+        <p>ご入力いただいた個人情報は、BeEngineer2027春の無料体験講座の受付、ご連絡および当日の運営にのみ使用します。法令に基づく場合を除き、ご本人の同意なく第三者へ提供することはありません。</p>
+      </div>
+      <p class="consent-agreement">上記の内容をご確認のうえ、申し込みへ進んでください。</p>
+      <a class="privacy-link" href="https://be-engineer.tech/privacy_policy" target="_blank" rel="noopener noreferrer">プライバシーポリシーを確認する</a>
+      <div id="consent-choices">
+        <label class="choice is-selected">
+          <input type="radio" name="consent" value="同意する" checked>
+          <span>同意する</span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="consent" value="同意しない">
+          <span>同意しない</span>
+        </label>
+      </div>
+      <p class="consent-hint" id="consent-hint">同意いただいた内容で、申込へ進みます。</p>
+      <button type="button" id="consent-btn">無料体験講座へ申し込む</button>
+    </div>
+
+    <div id="apply-flow" style="display:none;">
+      <h2>2027年度 春の無料体験講座</h2>
+      <form id="apply-form">
+        <section class="step" data-step="1">
+          <p class="progress">1 / 7</p>
+          <p class="question">4月からの新学年を選んでください。</p>
+          <div id="grade-list"></div>
+          <button type="button" class="next-btn" disabled>次へ進む</button>
+        </section>
+
+        <section class="step" data-step="2">
+          <p class="progress">2 / 7</p>
+          <p class="question">校舎を選んでください。</p>
+          <div id="campus-list"></div>
+          <button type="button" id="campus-preview-toggle" class="campus-preview-toggle" aria-expanded="false" hidden>
+            <span id="campus-preview-toggle-label">校舎住所を確認する</span>
+            <span id="campus-preview-toggle-icon" aria-hidden="true">＋</span>
+          </button>
+          <div id="campus-preview" class="campus-preview" hidden>
+            <p id="campus-preview-name" class="campus-preview-name"></p>
+            <p id="campus-preview-postal" class="campus-preview-postal"></p>
+            <p id="campus-preview-address" class="campus-preview-address"></p>
+            <p id="campus-preview-access" class="campus-preview-access"></p>
+            <a id="campus-map-link" class="campus-map-link" target="_blank" rel="noopener noreferrer">地図を開く</a>
+          </div>
+          <button type="button" class="next-btn" disabled>次へ進む</button>
+        </section>
+
+        <section class="step" data-step="3">
+          <p class="progress">3 / 7</p>
+          <p class="question">受講する無料体験講座を選んでください。</p>
+          <p class="hint">複数選択できます。</p>
+          <div id="course-list"></div>
+          <button type="button" class="next-btn" disabled>次へ進む</button>
+        </section>
+
+        <section class="step" data-step="4">
+          <p class="progress">4 / 7</p>
+          <p class="question">参加者氏名を入力してください。</p>
+          <input type="text" id="participant" name="participant" maxlength="50" autocomplete="name" placeholder="例）ビーエン太郎">
+          <button type="button" class="next-btn" disabled>次へ進む</button>
+        </section>
+
+        <section class="step" data-step="5">
+          <p class="progress">5 / 7</p>
+          <p class="question">学校名を入力してください。</p>
+          <input type="text" id="school" name="school" maxlength="80" autocomplete="organization" placeholder="例）〇〇中学校">
+          <button type="button" class="next-btn" disabled>次へ進む</button>
+        </section>
+
+        <section class="step" data-step="6">
+          <p class="progress">6 / 7</p>
+          <p class="question">メールアドレスを入力してください。</p>
+          <input type="email" id="email" name="email" maxlength="254" inputmode="email" autocomplete="email" placeholder="例）taro@example.com">
+          <p class="question">確認のため、もう一度入力してください。</p>
+          <input type="email" id="email-confirm" name="email-confirm" maxlength="254" inputmode="email" autocomplete="off" placeholder="例）taro@example.com">
+          <p class="input-hint" id="email-hint">入力したメールアドレスに、申込内容を送信します。</p>
+          <button type="button" class="next-btn" disabled>次へ進む</button>
+        </section>
+
+        <section class="step" data-step="7">
+          <p class="progress">7 / 7</p>
+          <p class="question">電話番号を入力してください。</p>
+          <input type="tel" id="phone" name="phone" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="例）090-1234-5678">
+          <p class="input-hint">ハイフンあり・なし、どちらでも入力できます。</p>
+          <button type="button" class="next-btn" disabled>確認画面へ</button>
+        </section>
+
+        <section class="step" data-step="8">
+          <p class="question">申込内容の確認</p>
+          <p class="edit-hint">下の項目をタップすると、<br>その内容を修正できます。</p>
+          <div id="confirm-list"></div>
+          <button type="button" id="submit-btn">申込</button>
+        </section>
+      </form>
+    </div>
+
+    <div id="done-step" style="display:none;">
+      <h2>申込完了</h2>
+      <p id="done-thanks" class="done-text"></p>
+      <p id="done-guide" class="line-guide"></p>
+      <a id="campus-line-link" class="line-link" target="_blank" rel="noopener noreferrer">友だち追加する</a>
+      <button type="button" id="restart-btn">他の校舎でも申し込む</button>
+      <button type="button" id="back-btn">戻る</button>
+    </div>
+
+  </div>
+
+  <div id="loading-overlay" class="loading-overlay" hidden aria-live="polite" aria-busy="true">
+    <div class="loading-panel">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <p class="loading-text">送信中<span id="loading-dots">.</span></p>
+      <p class="loading-note">このままお待ちください</p>
+    </div>
+  </div>
+
+  <script>
+    const VIEW = <?!= viewJson ?>;
+    const GRADES = VIEW.grades || [];
+    let CAMPUSES = VIEW.campuses || [];
+    let returnToConfirm = false;
+    let coursesForCampus = "";
+    let loadingDotsTimer = null;
+
+    function showSending() {
+      const overlay = document.getElementById("loading-overlay");
+      const dots = document.getElementById("loading-dots");
+      let count = 1;
+      dots.textContent = ".";
+      overlay.hidden = false;
+      clearInterval(loadingDotsTimer);
+      loadingDotsTimer = setInterval(() => {
+        count = count % 3 + 1;
+        dots.textContent = ".".repeat(count);
+      }, 500);
+    }
+
+    function hideSending() {
+      clearInterval(loadingDotsTimer);
+      loadingDotsTimer = null;
+      document.getElementById("loading-overlay").hidden = true;
+    }
+
+    function showError(msg) {
+      const statusEl = document.getElementById("status");
+      statusEl.className = "error-msg";
+      statusEl.textContent = msg;
+      statusEl.style.display = "block";
+      statusEl.scrollIntoView({ block: "nearest" });
+    }
+
+    function selectedConsent() {
+      const checked = document.querySelector("input[name='consent']:checked");
+      return checked ? checked.value : "";
+    }
+
+    function refreshConsent() {
+      const agree = selectedConsent() === "同意する";
+      document.getElementById("consent-btn").disabled = !agree;
+      const hint = document.getElementById("consent-hint");
+      hint.textContent = agree
+        ? "同意いただいた内容で、申込へ進みます。"
+        : "同意しない場合は、お申し込みできません。";
+      hint.classList.toggle("is-alert", !agree);
+      document.querySelectorAll("#consent-choices .choice").forEach(choice => {
+        choice.classList.toggle("is-selected", choice.querySelector("input").checked);
+      });
+    }
+    function selectedRadio(name) {
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      return checked ? checked.value : "";
+    }
+
+    function findCampus(name) {
+      return CAMPUSES.find(campus => campus.name === name) || null;
+    }
+
+    function renderCampusPreview() {
+      const campus = findCampus(selectedRadio("campus"));
+      const preview = document.getElementById("campus-preview");
+      const toggle = document.getElementById("campus-preview-toggle");
+      toggle.hidden = !campus;
+      toggle.setAttribute("aria-expanded", "false");
+      document.getElementById("campus-preview-toggle-label").textContent = "校舎住所を確認する";
+      document.getElementById("campus-preview-toggle-icon").textContent = "＋";
+      preview.hidden = true;
+      if (!campus) return;
+      document.getElementById("campus-preview-name").textContent = campus.name;
+      const postal = document.getElementById("campus-preview-postal");
+      postal.textContent = campus.postalCode;
+      postal.hidden = !campus.postalCode;
+      document.getElementById("campus-preview-address").textContent = campus.address;
+      const access = document.getElementById("campus-preview-access");
+      access.textContent = campus.access;
+      access.hidden = !campus.access;
+      const mapLink = document.getElementById("campus-map-link");
+      mapLink.href = campus.mapUrl;
+      mapLink.hidden = !campus.mapUrl;
+    }
+
+    function toggleCampusPreview() {
+      const preview = document.getElementById("campus-preview");
+      const toggle = document.getElementById("campus-preview-toggle");
+      const willOpen = preview.hidden;
+      preview.hidden = !willOpen;
+      toggle.setAttribute("aria-expanded", String(willOpen));
+      document.getElementById("campus-preview-toggle-label").textContent =
+        willOpen ? "校舎住所を閉じる" : "校舎住所を確認する";
+      document.getElementById("campus-preview-toggle-icon").textContent = willOpen ? "−" : "＋";
+    }
+
+    function selectedCourses() {
+      const campus = findCampus(selectedRadio("campus"));
+      if (!campus) return [];
+      return [...document.querySelectorAll("input[name='courses']:checked")]
+        .map(input => input.value)
+        .filter(value => campus.courses.some(course => course.label === value));
+    }
+
+    function readForm() {
+      return {
+        grade: selectedRadio("grade"),
+        campus: selectedRadio("campus"),
+        courses: selectedCourses(),
+        name: document.getElementById("participant").value.trim(),
+        school: document.getElementById("school").value.trim(),
+        email: normalizeEmail(document.getElementById("email").value),
+        confirmEmail: normalizeEmail(document.getElementById("email-confirm").value),
+        phone: document.getElementById("phone").value.trim()
+      };
+    }
+
+    function normalizeEmail(value) {
+      return String(value || "")
+        .replace(/[Ａ-Ｚａ-ｚ０-９]/g, character => String.fromCharCode(character.charCodeAt(0) - 0xFEE0))
+        .replace(/＠/g, "@")
+        .replace(/[．。]/g, ".")
+        .replace(/\s+/g, "")
+        .toLowerCase();
+    }
+
+    function isEmailValid(value) {
+      if (!value || value.length > 254) return false;
+      return /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/.test(value);
+    }
+
+    function isEmailStepValid(data) {
+      return isEmailValid(data.email) && data.email === data.confirmEmail;
+    }
+
+    function updateEmailHint() {
+      const hint = document.getElementById("email-hint");
+      const data = readForm();
+      if (data.confirmEmail && data.email !== data.confirmEmail) {
+        hint.textContent = "確認用のメールアドレスが一致しません。";
+        hint.classList.add("is-alert");
+        return;
+      }
+      if (data.email && !isEmailValid(data.email)) {
+        hint.textContent = "メールアドレスの形式を確認してください。";
+        hint.classList.add("is-alert");
+        return;
+      }
+      hint.textContent = "入力したメールアドレスに、申込内容を送信します。";
+      hint.classList.remove("is-alert");
+    }
+
+    function isPhoneValid(value) {
+      const digits = String(value || "")
+        .replace(/[０-９]/g, character => String.fromCharCode(character.charCodeAt(0) - 0xFEE0))
+        .replace(/\D/g, "");
+      return digits.length === 10 || digits.length === 11;
+    }
+
+    function isStepValid(stepNumber) {
+      const data = readForm();
+      if (stepNumber === 1) return Boolean(data.grade);
+      if (stepNumber === 2) return Boolean(data.campus);
+      if (stepNumber === 3) return data.courses.length > 0;
+      if (stepNumber === 4) return Boolean(data.name);
+      if (stepNumber === 5) return Boolean(data.school);
+      if (stepNumber === 6) return isEmailStepValid(data);
+      if (stepNumber === 7) return isPhoneValid(data.phone);
+      return true;
+    }
+
+    function refreshNav(step) {
+      const nextBtn = step.querySelector(".next-btn");
+      if (!nextBtn) return;
+      const stepNumber = Number(step.dataset.step);
+      nextBtn.disabled = !isStepValid(stepNumber);
+      if (stepNumber === 6) updateEmailHint();
+      if (returnToConfirm && stepNumber === 2) {
+        nextBtn.textContent = "無料体験講座を選ぶ";
+      } else if (returnToConfirm) {
+        nextBtn.textContent = "確認画面に戻る";
+      } else if (stepNumber === 7) {
+        nextBtn.textContent = "確認画面へ";
+      } else {
+        nextBtn.textContent = "次へ進む";
+      }
+    }
+
+    function appendStyledDatetime(container, course) {
+      const weekday = document.createElement("span");
+      weekday.className = `course-weekday ${course.weekdayClass}`;
+      weekday.textContent = course.weekdayLabel;
+      container.append(`${course.dateText}（`, weekday, `）${course.timeText}`);
+    }
+
+    function createChoice(type, name, value, checked, course) {
+      const label = document.createElement("label");
+      label.className = "choice";
+      const input = document.createElement("input");
+      input.type = type;
+      input.name = name;
+      input.value = value;
+      input.checked = Boolean(checked);
+      if (input.checked) label.classList.add("is-selected");
+      const text = document.createElement("span");
+      if (course) {
+        const title = document.createElement("span");
+        title.className = "choice-title";
+        title.textContent = course.title;
+        const datetime = document.createElement("span");
+        datetime.className = "choice-datetime";
+        appendStyledDatetime(datetime, course);
+        text.append(title, datetime);
+      } else {
+        text.textContent = value;
+      }
+      input.addEventListener("change", () => {
+        if (type === "radio") {
+          label.parentElement.querySelectorAll(".choice").forEach(choice => {
+            choice.classList.remove("is-selected");
+          });
+          label.classList.add("is-selected");
+        } else {
+          label.classList.toggle("is-selected", input.checked);
+        }
+        if (name === "campus") renderCampusPreview();
+        refreshNav(label.closest(".step"));
+      });
+      label.append(input, text);
+      return label;
+    }
+
+    function clearCourseSelections() {
+      document.querySelectorAll("input[name='courses']").forEach(input => {
+        input.checked = false;
+        const choice = input.closest(".choice");
+        if (choice) choice.classList.remove("is-selected");
+      });
+    }
+
+    function renderCourses() {
+      const campus = findCampus(selectedRadio("campus"));
+      const keep = new Set(selectedCourses());
+      const list = document.getElementById("course-list");
+      list.replaceChildren();
+      if (!campus || campus.courses.length === 0) {
+        const note = document.createElement("p");
+        note.className = "hint";
+        note.textContent = "この校舎で申し込みできる無料体験講座はありません。";
+        list.appendChild(note);
+        refreshNav(document.querySelector(".step[data-step='3']"));
+        return;
+      }
+
+      const groups = [
+        { title: "【1時間講座】", durationMinutes: 60 },
+        { title: "【2時間講座】", durationMinutes: 120 }
+      ];
+      groups.forEach(group => {
+        const courses = campus.courses.filter(course => course.durationMinutes === group.durationMinutes);
+        if (courses.length === 0) return;
+        const section = document.createElement("section");
+        section.className = "course-group";
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "course-group-toggle";
+        toggle.setAttribute("aria-expanded", "false");
+        const title = document.createElement("span");
+        title.textContent = group.title;
+        const icon = document.createElement("span");
+        icon.className = "course-group-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = "＋";
+        toggle.append(title, icon);
+        const options = document.createElement("div");
+        options.className = "course-group-options";
+        options.hidden = true;
+        courses.forEach(course => {
+          options.appendChild(createChoice("checkbox", "courses", course.label, keep.has(course.label), course));
+        });
+        if (courses.some(course => keep.has(course.label))) {
+          options.hidden = false;
+          toggle.setAttribute("aria-expanded", "true");
+          icon.textContent = "−";
+        }
+        toggle.addEventListener("click", () => {
+          const willOpen = options.hidden;
+          options.hidden = !willOpen;
+          toggle.setAttribute("aria-expanded", String(willOpen));
+          icon.textContent = willOpen ? "−" : "＋";
+        });
+        section.append(toggle, options);
+        list.appendChild(section);
+      });
+      refreshNav(document.querySelector(".step[data-step='3']"));
+    }
+
+    function appendCourseLines(container, labels) {
+      const campus = findCampus(selectedRadio("campus"));
+      labels.forEach(label => {
+        const course = campus && campus.courses.find(item => item.label === label);
+        const block = document.createElement("span");
+        block.className = "confirm-course";
+        const title = document.createElement("span");
+        title.className = "confirm-course-title";
+        title.textContent = course ? course.title : label;
+        const datetime = document.createElement("span");
+        datetime.className = "confirm-course-datetime";
+        if (course && course.datetime) {
+          const datetimeLabel = document.createElement("span");
+          datetimeLabel.className = "confirm-course-datetime-label";
+          datetimeLabel.textContent = "日時";
+          datetime.append(datetimeLabel);
+          appendStyledDatetime(datetime, course);
+        }
+        block.append(title, datetime);
+        container.appendChild(block);
+      });
+    }
+
+    function renderConfirm() {
+      const data = readForm();
+      const rows = [
+        ["新学年", data.grade, 1],
+        ["校舎", data.campus, 2],
+        ["申込講座", data.courses.join("\n"), 3],
+        ["参加者氏名", data.name, 4],
+        ["学校名", data.school, 5],
+        ["メールアドレス", data.email, 6],
+        ["電話番号", data.phone, 7]
+      ];
+      const list = document.getElementById("confirm-list");
+      list.replaceChildren();
+      rows.forEach(([label, value, stepNumber]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "confirm-item";
+        const labelEl = document.createElement("span");
+        labelEl.className = "confirm-label";
+        labelEl.textContent = label;
+        const valueEl = document.createElement("span");
+        valueEl.className = "confirm-value";
+        if (stepNumber === 3) appendCourseLines(valueEl, data.courses);
+        else valueEl.textContent = value;
+        button.append(labelEl, valueEl);
+        button.addEventListener("click", () => {
+          returnToConfirm = true;
+          showStep(stepNumber);
+        });
+        list.appendChild(button);
+      });
+    }
+
+    function showStep(stepNumber) {
+      document.getElementById("status").style.display = "none";
+      document.querySelectorAll(".step").forEach(step => {
+        step.classList.toggle("is-active", step.dataset.step === String(stepNumber));
+      });
+      if (stepNumber === 3) renderCourses();
+      if (stepNumber === 2) renderCampusPreview();
+      if (stepNumber === 8) renderConfirm();
+      const active = document.querySelector(".step.is-active");
+      if (active) refreshNav(active);
+    }
+
+    function goNext(step) {
+      const stepNumber = Number(step.dataset.step);
+      if (!isStepValid(stepNumber)) return;
+      if (stepNumber === 2 && selectedRadio("campus") !== coursesForCampus) clearCourseSelections();
+      if (stepNumber === 3) coursesForCampus = selectedRadio("campus");
+      if (returnToConfirm && stepNumber === 2) {
+        showStep(3);
+        return;
+      }
+      if (returnToConfirm || stepNumber >= 7) {
+        returnToConfirm = false;
+        showStep(8);
+        return;
+      }
+      showStep(stepNumber + 1);
+    }
+
+    function showDone(campusName, mailNote) {
+      const campus = findCampus(campusName);
+      const extra = mailNote
+        ? mailNote
+        : "確認メールを送信しました。\n届かない場合は、迷惑メールもご確認ください。";
+      document.getElementById("done-thanks").textContent =
+        `申込ありがとうございました。\n${campusName}からのご連絡をお待ちください。\n\n${extra}`;
+      const guide = document.getElementById("done-guide");
+      const link = document.getElementById("campus-line-link");
+      if (campus && campus.lineUrl) {
+        guide.hidden = false;
+        guide.textContent = `今後のご連絡は、\n${campusName}専用LINE\nで行うとスムーズになります。\n友だち追加をお願いいたします。`;
+        link.hidden = false;
+        link.href = campus.lineUrl;
+        link.textContent = `${campusName}専用LINEを友だち追加する`;
+      } else {
+        guide.hidden = true;
+        link.hidden = true;
+      }
+      document.getElementById("apply-flow").style.display = "none";
+      document.getElementById("status").style.display = "none";
+      document.getElementById("done-step").style.display = "block";
+    }
+
+    function resetForm() {
+      returnToConfirm = false;
+      coursesForCampus = "";
+      document.getElementById("apply-form").reset();
+      const submitButton = document.getElementById("submit-btn");
+      submitButton.disabled = false;
+      submitButton.textContent = "申込";
+      document.querySelectorAll(".choice.is-selected").forEach(choice => {
+        choice.classList.remove("is-selected");
+      });
+      renderCampusPreview();
+      document.querySelector("input[name='consent'][value='同意する']").checked = true;
+      refreshConsent();
+      document.getElementById("done-step").style.display = "none";
+      document.getElementById("apply-flow").style.display = "none";
+      document.getElementById("consent-step").style.display = "block";
+      showStep(1);
+    }
+
+    function finishError(message) {
+      hideSending();
+      const button = document.getElementById("submit-btn");
+      button.disabled = false;
+      button.textContent = "申込";
+      showError(message);
+    }
+
+    function submitApplication() {
+      const data = readForm();
+      if (!data.grade || !data.campus || data.courses.length === 0 || !data.name || !data.school || !isEmailStepValid(data) || !isPhoneValid(data.phone)) {
+        showStep(!data.grade ? 1 : !data.campus ? 2 : data.courses.length === 0 ? 3 : !data.name ? 4 : !data.school ? 5 : !isEmailStepValid(data) ? 6 : 7);
+        return;
+      }
+      if (!(window.google && google.script && google.script.run)) {
+        showError("この画面は、Googleフォームのウェブアプリとして開いてください。");
+        return;
+      }
+      const button = document.getElementById("submit-btn");
+      button.disabled = true;
+      button.textContent = "送信中...";
+      showSending();
+      google.script.run
+        .withSuccessHandler(result => {
+          hideSending();
+          if (!result || !result.ok) {
+            finishError(result && result.message ? result.message : "送信できませんでした。もう一度お試しください。");
+            return;
+          }
+          showDone(data.campus, result.mailSent ? "" : (result.message || "確認メールを送信できませんでした。"));
+        })
+        .withFailureHandler(error => {
+          finishError(error && error.message ? error.message : "送信できませんでした。もう一度お試しください。");
+        })
+        .submitToGoogleForm({
+          grade: data.grade,
+          campus: data.campus,
+          courses: data.courses,
+          name: data.name,
+          school: data.school,
+          email: data.email,
+          phone: data.phone,
+          consent: selectedConsent()
+        });
+    }
+
+    function setupPage() {
+      const gradeList = document.getElementById("grade-list");
+      GRADES.forEach(grade => gradeList.appendChild(createChoice("radio", "grade", grade, false)));
+      const campusList = document.getElementById("campus-list");
+      CAMPUSES.forEach(campus => campusList.appendChild(createChoice("radio", "campus", campus.name, false)));
+      document.querySelectorAll(".next-btn").forEach(button => {
+        button.addEventListener("click", () => {
+          if (button.disabled) return;
+          goNext(button.closest(".step"));
+        });
+      });
+      ["participant", "school", "email", "email-confirm", "phone"].forEach(id => {
+        document.getElementById(id).addEventListener("input", event => {
+          refreshNav(event.target.closest(".step"));
+        });
+      });
+      document.getElementById("apply-form").addEventListener("submit", event => event.preventDefault());
+      document.getElementById("submit-btn").addEventListener("click", submitApplication);
+      document.getElementById("consent-btn").addEventListener("click", () => {
+        if (selectedConsent() !== "同意する") {
+          refreshConsent();
+          return;
+        }
+        document.getElementById("consent-step").style.display = "none";
+        document.getElementById("apply-flow").style.display = "block";
+        showStep(1);
+      });
+      document.querySelectorAll("input[name='consent']").forEach(input => {
+        input.addEventListener("change", refreshConsent);
+      });
+      refreshConsent();
+      document.getElementById("campus-preview-toggle").addEventListener("click", toggleCampusPreview);
+      document.getElementById("restart-btn").addEventListener("click", resetForm);
+      document.getElementById("back-btn").addEventListener("click", () => history.back());
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (CAMPUSES.length === 0) {
+        document.getElementById("consent-step").style.display = "none";
+        showError("現在申し込みできる無料体験講座はありません。");
+        return;
+      }
+      setupPage();
+    });
+  </script>
+</body>
+</html>
