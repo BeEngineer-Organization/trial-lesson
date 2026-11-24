@@ -71,7 +71,7 @@ function saveApplication(data) {
     lineSent = pushResult.ok;
     lineMessage = pushResult.ok ? "" : pushResult.message;
   } else if (data.deliverLine) {
-    lineMessage = "確認メッセージは、公式アカウントとのトークから開いたときだけ、そのトークに届きます。";
+    lineMessage = "LINEのユーザーIDを取得できなかったため、公式アカウントから送れませんでした。";
   }
   return { status: "success", lineSent: lineSent, message: lineMessage };
 }
@@ -568,6 +568,6 @@ function postLinePush(userId, token, message) {
   }
   return {
     ok: false,
-    message: "確認メッセージをトークへ送れませんでした。公式アカウントのトークから開き直してください。"
+    message: "確認メッセージをトークへ送れませんでした。（LINE " + response.getResponseCode() + "：" + body.slice(0, 200) + "）"
   };
 }

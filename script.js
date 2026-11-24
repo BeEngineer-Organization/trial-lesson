@@ -839,7 +839,7 @@ async function submitApplication() {
         userId: profile.userId,
         messageText,
         flexMessage,
-        deliverLine: !sentInChat && index === 0 && Boolean(profile.userId)
+        deliverLine: !sentInChat && index === 0
       });
       if (!result || result.status !== "success") {
         const detail = result && result.message ? result.message : "";
@@ -855,7 +855,7 @@ async function submitApplication() {
       ? "確認メッセージは、この申込を開いたトークに送りました。"
       : lineDelivered
         ? "確認メッセージは、このミニアプリの公式アカウントとのトークに届きます。校舎専用LINEとは別のトークです。"
-        : [lineNote, sendError].filter(Boolean).join("\n") || "確認メッセージをトークへ送れませんでした。";
+        : [lineNote, sendError, liffDiagnostics()].filter(Boolean).join("\n") || "確認メッセージをトークへ送れませんでした。";
     showDone(data.campus, deliveryNote);
   } catch (err) {
     const detail = err && err.message ? err.message : "送信できませんでした。もう一度お試しください。";
@@ -872,21 +872,34 @@ async function submitApplication() {
 }
 
 function closeLine(event) {
+  if (!liffInClient() || !liff.closeWindow) return;
   if (event) event.preventDefault();
-  const chatUrl = "https://line.me/R/nv/chat";
-  try {
-    if (typeof liff !== "undefined" && liff.openWindow) {
-      liff.openWindow({ url: chatUrl, external: true });
-      return;
-    }
-  } catch (error) {}
-  window.location.href = chatUrl;
+  liff.closeWindow();
 }
 
 function chatContextType() {
   try {
     const context = liff.getContext ? liff.getContext() : null;
     return context && context.type ? context.type : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function liffDiagnostics() {
+  try {
+    const context = liff.getContext ? liff.getContext() : null;
+    const openedId = context && context.liffId ? context.liffId : "不明";
+    const lines = [
+      `起動元：${context && context.type ? context.type : "不明"}`,
+      `LIFFブラウザ：${liffInClient() ? "はい" : "いいえ"}`,
+      `開いたLIFF ID：${openedId}`,
+      `設定のLIFF ID：${LIFF_ID}`
+    ];
+    if (openedId !== "不明" && openedId !== LIFF_ID) {
+      lines.push("開いたミニアプリと設定のLIFF IDが違います。");
+    }
+    return lines.join("\n");
   } catch (error) {
     return "";
   }
