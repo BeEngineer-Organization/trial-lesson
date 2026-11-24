@@ -60,18 +60,14 @@ function saveApplication(data) {
   if (!data || !data.name || !data.campus) {
     return { status: "error", lineSent: false, message: "申込内容が不足しているため、保存できませんでした。" };
   }
-  var lineSent = false;
-  if (data.deliverLine) {
-    var pushResult = pushLineMessage(data.userId, data.messageText, data.flexMessage);
-    if (!pushResult.ok) {
-      return { status: "error", lineSent: false, message: pushResult.message };
-    }
-    lineSent = true;
-  }
   if (!data.lineName && data.userId) {
     data.lineName = getLineDisplayName(data.userId);
   }
   appendApplication(data);
+  var lineSent = false;
+  if (data.deliverLine && data.userId) {
+    lineSent = pushLineMessage(data.userId, data.messageText, data.flexMessage).ok;
+  }
   return { status: "success", lineSent: lineSent, message: "" };
 }
 

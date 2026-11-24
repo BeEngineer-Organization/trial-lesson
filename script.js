@@ -829,7 +829,7 @@ async function submitApplication() {
         userId: profile.userId,
         messageText,
         flexMessage,
-        deliverLine: !sentInChat && index === 0
+        deliverLine: !sentInChat && index === 0 && Boolean(profile.userId)
       });
       if (!result || result.status !== "success") {
         const detail = result && result.message ? result.message : "";

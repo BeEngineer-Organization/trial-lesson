@@ -16,11 +16,12 @@
  * スケジュールを変えたあとは、デモLP側の schedule.json を公開すれば両方の申込画面に反映される。
  * 校舎の追加・削除をしたときは、prepareGoogleForm を再実行する。
  * 回答シートの空欄列は、フォームとつながっているあいだは削除できない。
- * cleanupResponseColumns を実行すると、不要な列を外し、以降の回答は新しいシートへ入る。
- * 質問タイトルは変更しない。変えると画面からの送信先が外れる。
- *
- * 1回の申込は、Googleフォームの回答1件になる。
- * 複数講座は「申込講座」に1行ずつ入る。
+ * cleanupResponseColumns を実行すると、不要な列を外す。回答先のシートは変えない。
+ * 回答シートの「申込講座」は、その位置で「講座名」「日時」の2列に分ける。
+ * 列は末尾に追加しない。複数講座は、講座ごとに1行になる。
+ * splitCourseColumns を実行すると、今の回答シートをその形に直す。
+ * 以降の申込も、フォームの回答送信は使わず、同じ列へ講座ごとに1行ずつ直接入れる。
+ * 確認メールは申込1件につき1通。
  * 確認メールの送信元は SENDER_EMAIL。
  * 空欄のときは、ウェブアプリを実行しているGoogleアカウントから送る。
  * 別アドレスにする場合は、そのアカウントのGmail「名前」で確認済みの送信元だけ指定できる。
@@ -102,6 +103,8 @@ function cleanupResponseColumns() {
   var headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
   var keepTitles = { "タイムスタンプ": true, "Timestamp": true };
   QUESTIONS.forEach(function(spec) { keepTitles[spec.title] = true; });
+  keepTitles["講座名"] = true;
+  keepTitles["日時"] = true;
   var bestColumn = {};
   for (var column = 1; column <= headers.length; column += 1) {
     var title = String(headers[column - 1] || "");
@@ -123,8 +126,7 @@ function cleanupResponseColumns() {
   for (var index = headers.length; index >= 1; index -= 1) {
     if (!keepColumns[index]) sheet.deleteColumn(index);
   }
-  form.setDestination(FormApp.DestinationType.SPREADSHEET, spreadsheetId);
-  var message = "不要な列を「" + sheetName + "」から削除しました。これ以降の回答は、新しく作られたシートに入ります。";
+  var message = "不要な列を「" + sheetName + "」から削除しました。シートはそのままです。";
   Logger.log(message);
   return message;
 }
@@ -150,9 +152,8 @@ function submitToGoogleForm(data) {
     var check = validateApplication(data);
     if (!check.ok) return check;
     var form = getForm();
-    var response = form.createResponse();
-    fillResponse(form, response, check.value);
-    response.submit();
+    var sheet = ensureSplitSheet(form);
+    appendCourseRows(sheet, check.value);
     var mailResult = deliverConfirmationMail(check.value);
     return { ok: true, mailSent: mailResult.ok, message: mailResult.message };
   } catch (error) {
@@ -164,6 +165,196 @@ function submitToGoogleForm(data) {
       } catch (ignore) {}
     }
   }
+}
+
+function splitCourseColumns() {
+  var sheet = ensureSplitSheet(getForm());
+  var message = "「" + sheet.getName() + "」の申込講座を、同じ位置で「講座名」と「日時」に分けました。";
+  Logger.log(message);
+  return message;
+}
+
+function ensureSplitSheet(form) {
+  var sheet = responseSheet(form);
+  if (form.getDestinationId()) form.removeDestination();
+  rewriteCourseColumn(sheet);
+  return sheet;
+}
+
+function responseSheet(form) {
+  var props = PropertiesService.getScriptProperties();
+  var spreadsheetId = form.getDestinationId() || props.getProperty("RESPONSE_SPREADSHEET_ID");
+  if (!spreadsheetId) throw new Error("回答先のスプレッドシートがありません。");
+  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  props.setProperty("RESPONSE_SPREADSHEET_ID", spreadsheetId);
+  var savedName = props.getProperty("RESPONSE_SHEET_NAME");
+  if (savedName && spreadsheet.getSheetByName(savedName)) {
+    return spreadsheet.getSheetByName(savedName);
+  }
+  var sheet = null;
+  try {
+    sheet = findResponseSheet(spreadsheet, form);
+  } catch (error) {
+    sheet = null;
+  }
+  if (!sheet) {
+    var sheets = spreadsheet.getSheets();
+    for (var i = 0; i < sheets.length; i += 1) {
+      var width = Math.max(sheets[i].getLastColumn(), 1);
+      var headers = sheets[i].getRange(1, 1, 1, width).getValues()[0];
+      for (var column = 0; column < headers.length; column += 1) {
+        var title = String(headers[column] || "");
+        if (title === "申込講座" || title === "講座名") {
+          sheet = sheets[i];
+          break;
+        }
+      }
+      if (sheet) break;
+    }
+  }
+  if (!sheet) throw new Error("回答用のシートが見つかりません。");
+  props.setProperty("RESPONSE_SHEET_NAME", sheet.getName());
+  return sheet;
+}
+
+function rewriteCourseColumn(sheet) {
+  var lastColumn = Math.max(sheet.getLastColumn(), 1);
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  var values = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
+  var headers = values[0].map(function(value) { return String(value || ""); });
+  var courseIndex = -1;
+  for (var i = 0; i < headers.length; i += 1) {
+    if (headers[i] === "申込講座" || headers[i] === "講座名") {
+      courseIndex = i;
+      break;
+    }
+  }
+  if (courseIndex === -1) throw new Error("「申込講座」の列が見つかりません。");
+  var paired = headers[courseIndex] === "講座名" && headers[courseIndex + 1] === "日時";
+  var skip = {};
+  for (var column = 0; column < headers.length; column += 1) {
+    if (column === courseIndex) continue;
+    if (paired && column === courseIndex + 1) continue;
+    if (headers[column] === "講座名" || headers[column] === "日時" || headers[column] === "申込講座") skip[column] = true;
+  }
+  var expanded = [];
+  for (var rowIndex = 1; rowIndex < values.length; rowIndex += 1) {
+    if (isBlankRow(values[rowIndex])) continue;
+    var source = String(values[rowIndex][courseIndex] || "");
+    var lines = [];
+    source.split(/\n/).forEach(function(line) {
+      var text = String(line || "").replace(/^\s+|\s+$/g, "");
+      if (text) lines.push(text);
+    });
+    var existingTime = paired ? String(values[rowIndex][courseIndex + 1] || "").replace(/^\s+|\s+$/g, "") : "";
+    if (lines.length === 0) {
+      expanded.push(projectCourseRow(values[rowIndex], courseIndex, "", existingTime, skip, paired));
+      continue;
+    }
+    if (paired && lines.length === 1 && source.indexOf("\n") === -1 && existingTime) {
+      expanded.push(projectCourseRow(values[rowIndex], courseIndex, lines[0], existingTime, skip, paired));
+      continue;
+    }
+    lines.forEach(function(line) {
+      var parts = splitCourseLabel(line);
+      expanded.push(projectCourseRow(values[rowIndex], courseIndex, parts.title, parts.datetime, skip, paired));
+    });
+  }
+  var newHeaders = [];
+  headers.forEach(function(header, index) {
+    if (skip[index]) return;
+    if (index === courseIndex) {
+      newHeaders.push("講座名");
+      if (!paired) newHeaders.push("日時");
+      return;
+    }
+    newHeaders.push(header);
+  });
+  var width = newHeaders.length;
+  var output = [newHeaders].concat(expanded);
+  output.forEach(function(row) {
+    while (row.length < width) row.push("");
+    if (row.length > width) row.length = width;
+  });
+  sheet.clearContents();
+  if (sheet.getMaxColumns() < width) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), width - sheet.getMaxColumns());
+  }
+  sheet.getRange(1, 1, output.length, width).setValues(output);
+  if (sheet.getMaxColumns() > width) {
+    sheet.deleteColumns(width + 1, sheet.getMaxColumns() - width);
+  }
+  layoutSplitColumns(sheet, newHeaders.indexOf("講座名"));
+}
+
+function projectCourseRow(source, courseIndex, title, datetime, skip, paired) {
+  var row = [];
+  for (var index = 0; index < source.length; index += 1) {
+    if (skip[index]) continue;
+    if (index === courseIndex) {
+      row.push(title);
+      if (!paired) row.push(datetime);
+      continue;
+    }
+    if (paired && index === courseIndex + 1) {
+      row.push(datetime);
+      continue;
+    }
+    row.push(source[index]);
+  }
+  return row;
+}
+
+function appendCourseRows(sheet, data) {
+  var width = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, width).getValues()[0].map(function(value) {
+    return String(value || "");
+  });
+  var rows = data.courses.map(function(course) {
+    return headers.map(function(header) {
+      if (header === "タイムスタンプ" || header === "Timestamp") return new Date();
+      if (header === "新学年") return data.grade;
+      if (header === "校舎") return data.campus;
+      if (header === "講座名") return course.title;
+      if (header === "日時") return course.datetime;
+      if (header === "参加者氏名") return data.name;
+      if (header === "学校名") return data.school;
+      if (header === "メールアドレス") return data.email;
+      if (header === "電話番号") return data.phone;
+      return "";
+    });
+  });
+  if (rows.length === 0) return;
+  var startRow = sheet.getLastRow() + 1;
+  sheet.getRange(startRow, 1, rows.length, headers.length).setValues(rows);
+  layoutSplitColumns(sheet, headers.indexOf("講座名"));
+}
+
+function layoutSplitColumns(sheet, courseIndex) {
+  if (courseIndex < 0) return;
+  var nameColumn = courseIndex + 1;
+  var timeColumn = nameColumn + 1;
+  if (sheet.getColumnWidth(nameColumn) < 280) sheet.setColumnWidth(nameColumn, 280);
+  if (sheet.getColumnWidth(timeColumn) < 240) sheet.setColumnWidth(timeColumn, 240);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+  var range = sheet.getRange(2, nameColumn, lastRow - 1, 2);
+  range.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  range.setVerticalAlignment("middle");
+}
+
+function isBlankRow(row) {
+  for (var i = 0; i < row.length; i += 1) {
+    if (String(row[i] || "").replace(/^\s+|\s+$/g, "")) return false;
+  }
+  return true;
+}
+
+function splitCourseLabel(line) {
+  var text = String(line || "");
+  var match = text.match(/^(.*)\s(\d{1,2}月\d{1,2}日（[^）]+）\d{1,2}:\d{2}-\d{1,2}:\d{2})$/);
+  if (!match) return { title: text, datetime: "" };
+  return { title: match[1], datetime: match[2] };
 }
 
 function getViewModel() {
@@ -336,7 +527,7 @@ function configureItem(item) {
   item.asTextItem().setRequired(true);
 }
 
-function fillResponse(form, response, data) {
+function fillResponse(form, response, data, course) {
   var grade = requireItem(form, "新学年", FormApp.ItemType.MULTIPLE_CHOICE);
   response.withItemResponse(grade.asMultipleChoiceItem().createResponse(data.grade));
 
@@ -344,7 +535,7 @@ function fillResponse(form, response, data) {
   response.withItemResponse(campus.asMultipleChoiceItem().createResponse(data.campus));
 
   var courses = requireItem(form, "申込講座", FormApp.ItemType.PARAGRAPH_TEXT);
-  response.withItemResponse(courses.asParagraphTextItem().createResponse(data.courses.join("\n")));
+  response.withItemResponse(courses.asParagraphTextItem().createResponse(course.title + " " + course.datetime));
 
   var name = requireItem(form, "参加者氏名", FormApp.ItemType.TEXT);
   response.withItemResponse(name.asTextItem().createResponse(data.name));
@@ -509,7 +700,7 @@ function confirmationBody(data) {
     "申込講座："
   ];
   data.courses.forEach(function(course) {
-    lines.push("・" + course);
+    lines.push("・" + course.title + " " + course.datetime);
   });
   lines.push(
     "参加者氏名：" + data.name,
@@ -566,16 +757,21 @@ function isEmailValid(value) {
 function uniqueCourses(values, campus) {
   var allowed = {};
   campus.courses.forEach(function(course) {
-    allowed[course.label] = true;
+    allowed[course.label] = course;
   });
   var seen = {};
   var courses = [];
   var list = Array.isArray(values) ? values : [];
   for (var i = 0; i < list.length && courses.length < 20; i += 1) {
     var label = cleanText(list[i], 120);
-    if (!label || seen[label] || !allowed[label]) continue;
+    var course = allowed[label];
+    if (!label || seen[label] || !course) continue;
     seen[label] = true;
-    courses.push(label);
+    courses.push({
+      title: course.title,
+      datetime: course.datetime,
+      label: label
+    });
   }
   if (Array.isArray(values) && values.length !== courses.length) return [];
   return courses;
@@ -737,6 +933,9 @@ function friendlyError(error) {
   }
   if (/invalid choice|does not match/i.test(message)) {
     return "フォームの選択肢と申込内容が一致しません。prepareGoogleForm を実行してから、もう一度お試しください。";
+  }
+  if (/応答先がありません/.test(message)) {
+    return "回答先のスプレッドシートが見つかりません。フォームの回答先を選び直し、splitCourseColumns を実行してください。";
   }
   return message || "送信できませんでした。もう一度お試しください。";
 }
