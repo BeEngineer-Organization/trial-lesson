@@ -737,18 +737,21 @@ function deliverConfirmationMail(data) {
     if (sender.error) return { ok: false, message: sender.error };
     var subject = "【BeEngineer】2027年度 春の無料体験講座の申込を受け付けました";
     var body = confirmationBody(data);
+    var htmlBody = confirmationHtml(data);
     if (sender.email) {
       GmailApp.sendEmail(data.email, subject, body, {
         from: sender.email,
         name: SENDER_NAME,
-        replyTo: sender.email
+        replyTo: sender.email,
+        htmlBody: htmlBody
       });
     } else {
       MailApp.sendEmail({
         to: data.email,
         subject: subject,
         name: SENDER_NAME,
-        body: body
+        body: body,
+        htmlBody: htmlBody
       });
     }
     return { ok: true, message: "" };
@@ -778,42 +781,145 @@ function resolveSenderEmail() {
 }
 
 function confirmationBody(data) {
+  var rule = "━━━━━━━━━━━━━━━━━━━━";
+  var thin = "────────────────────";
   var lines = [
     data.name + " 様",
     "",
-    "2027年度 春の無料体験講座のお申し込みを受け付けました。",
-    "内容をご確認ください。",
+    "このたびは、BeEngineerの無料体験講座に",
+    "お申し込みいただき、ありがとうございます。",
+    "以下の内容で受け付けました。",
     "",
-    "新学年：" + data.grade,
-    "校舎：" + data.campus,
-    "申込講座："
+    rule,
+    "【お申し込みを受け付けました】",
+    "2027年度 春の無料体験講座",
+    rule,
+    "",
+    "■ 申込講座",
+    thin
   ];
   data.courses.forEach(function(course) {
-    lines.push("・" + course.title + " " + course.datetime);
+    lines.push("・" + course.title);
+    if (course.datetime) lines.push("　日時：" + course.datetime);
   });
   lines.push(
-    "参加者氏名：" + data.name,
-    "学校名：" + data.school,
-    "メールアドレス：" + data.email,
-    "電話番号：" + data.phone,
+    "",
+    "■ お申し込み内容",
+    thin,
+    "・新学年　　　　：" + data.grade,
+    "・校舎　　　　　：" + data.campus,
+    "・参加者氏名　　：" + data.name,
+    "・学校名　　　　：" + data.school,
+    "・メールアドレス：" + data.email,
+    "・電話番号　　　：" + data.phone,
     ""
   );
   if (data.postalCode || data.address) {
-    lines.push("校舎のご案内：");
+    lines.push("■ 校舎のご案内", thin, "【" + data.campus + "】");
     if (data.postalCode) lines.push(data.postalCode);
     if (data.address) lines.push(data.address);
     if (data.access) lines.push(data.access);
-    if (data.mapUrl) lines.push(data.mapUrl);
+    if (data.mapUrl) lines.push("", "▼ 地図を開く", data.mapUrl);
     lines.push("");
   }
   if (data.lineUrl) {
-    lines.push("今後のご連絡は、" + data.campus + "専用LINEがスムーズです。");
-    lines.push(data.lineUrl);
-    lines.push("");
+    lines.push(
+      "■ 今後のご連絡について",
+      thin,
+      "今後のご連絡は、" + data.campus + "専用LINEで行うとスムーズです。",
+      "友だち追加をお願いいたします。",
+      "",
+      "▼ " + data.campus + "専用LINEを友だち追加する",
+      data.lineUrl,
+      ""
+    );
   }
-  lines.push(data.campus + "からのご連絡をお待ちください。");
-  lines.push("このメールは送信専用です。");
+  lines.push(
+    data.campus + "からのご連絡をお待ちください。",
+    "",
+    rule,
+    "BeEngineer",
+    "※このメールは送信専用です。ご返信いただいてもお答えできません。",
+    rule
+  );
   return lines.join("\n");
+}
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function mailRow(label, value) {
+  return '<tr>' +
+    '<th style="width:110px;padding:10px 12px;border-bottom:1px solid #e6e6e6;text-align:left;font-weight:normal;color:#666666;font-size:13px;vertical-align:top;">' + escapeHtml(label) + '</th>' +
+    '<td style="padding:10px 12px;border-bottom:1px solid #e6e6e6;color:#222222;font-size:15px;">' + escapeHtml(value) + '</td>' +
+    '</tr>';
+}
+
+function mailSectionTitle(text) {
+  return '<p style="margin:28px 0 10px;padding-left:10px;border-left:4px solid #06C755;font-size:15px;font-weight:bold;color:#222222;">' + escapeHtml(text) + '</p>';
+}
+
+function mailButton(url, label) {
+  return '<a href="' + escapeHtml(url) + '" style="display:inline-block;margin-top:12px;padding:10px 20px;border-radius:6px;background:#06C755;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">' + escapeHtml(label) + '</a>';
+}
+
+function confirmationHtml(data) {
+  var courses = data.courses.map(function(course) {
+    return '<div style="margin:0 0 8px;padding:12px 14px;border-radius:6px;background:#f4fbf6;">' +
+      '<div style="font-size:15px;font-weight:bold;color:#222222;">' + escapeHtml(course.title) + '</div>' +
+      (course.datetime ? '<div style="margin-top:4px;font-size:14px;color:#444444;">' + escapeHtml(course.datetime) + '</div>' : '') +
+      '</div>';
+  }).join("");
+
+  var guide = "";
+  if (data.postalCode || data.address) {
+    guide = mailSectionTitle("校舎のご案内") +
+      '<p style="margin:0;font-size:14px;line-height:1.7;color:#222222;">' +
+      '<strong>' + escapeHtml(data.campus) + '</strong><br>' +
+      (data.postalCode ? escapeHtml(data.postalCode) + '<br>' : '') +
+      escapeHtml(data.address || "") +
+      (data.access ? '<br><span style="color:#666666;">' + escapeHtml(data.access) + '</span>' : '') +
+      '</p>' +
+      (data.mapUrl ? mailButton(data.mapUrl, "地図を開く") : "");
+  }
+
+  var line = "";
+  if (data.lineUrl) {
+    line = mailSectionTitle("今後のご連絡について") +
+      '<p style="margin:0;font-size:14px;line-height:1.7;color:#222222;">今後のご連絡は、' + escapeHtml(data.campus) + '専用LINEで行うとスムーズです。<br>友だち追加をお願いいたします。</p>' +
+      mailButton(data.lineUrl, data.campus + "専用LINEを友だち追加する");
+  }
+
+  return '<div style="margin:0;padding:24px 12px;background:#f5f5f5;font-family:\'Hiragino Sans\',\'Hiragino Kaku Gothic ProN\',Meiryo,sans-serif;">' +
+    '<div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;">' +
+    '<div style="padding:24px 24px 16px;text-align:center;border-bottom:3px solid #06C755;">' +
+    '<img src="https://beengineer-organization.github.io/trial-lesson/logo_color.png" alt="BeEngineer" width="180" style="display:inline-block;max-width:180px;height:auto;">' +
+    '<p style="margin:14px 0 0;font-size:18px;font-weight:bold;color:#222222;">お申し込みを受け付けました</p>' +
+    '<p style="margin:4px 0 0;font-size:13px;color:#666666;">2027年度 春の無料体験講座</p>' +
+    '</div>' +
+    '<div style="padding:24px;">' +
+    '<p style="margin:0;font-size:15px;line-height:1.8;color:#222222;">' + escapeHtml(data.name) + ' 様<br><br>' +
+    'このたびは、BeEngineerの無料体験講座にお申し込みいただき、ありがとうございます。<br>以下の内容で受け付けました。</p>' +
+    mailSectionTitle("申込講座") + courses +
+    mailSectionTitle("お申し込み内容") +
+    '<table style="width:100%;border-collapse:collapse;border-top:1px solid #e6e6e6;">' +
+    mailRow("新学年", data.grade) +
+    mailRow("校舎", data.campus) +
+    mailRow("参加者氏名", data.name) +
+    mailRow("学校名", data.school) +
+    mailRow("メールアドレス", data.email) +
+    mailRow("電話番号", data.phone) +
+    '</table>' +
+    guide + line +
+    '<p style="margin:28px 0 0;font-size:14px;line-height:1.8;color:#222222;">' + escapeHtml(data.campus) + 'からのご連絡をお待ちください。</p>' +
+    '</div>' +
+    '<div style="padding:14px 24px;background:#fafafa;font-size:12px;line-height:1.6;color:#888888;text-align:center;">このメールは送信専用です。ご返信いただいてもお答えできません。<br>BeEngineer</div>' +
+    '</div></div>';
 }
 
 function mailErrorMessage(error) {

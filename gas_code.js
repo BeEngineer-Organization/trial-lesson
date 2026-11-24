@@ -15,6 +15,10 @@ function doGet(e) {
     return ContentService.createTextOutput(last || "{\"status\":\"none\"}")
       .setMimeType(ContentService.MimeType.JSON);
   }
+  if (e && e.parameter && e.parameter.botinfo === "1") {
+    return ContentService.createTextOutput(JSON.stringify(lineBotInfo()))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   reformatCourseColumn();
   if (!e || !e.parameter || !e.parameter.payload) {
     return ContentService.createTextOutput(JSON.stringify({ status: "success", version: 8 }))
@@ -74,6 +78,21 @@ function saveApplication(data) {
     lineMessage = "LINEのユーザーIDを取得できなかったため、公式アカウントから送れませんでした。";
   }
   return { status: "success", lineSent: lineSent, message: lineMessage };
+}
+
+function lineBotInfo() {
+  var token = PropertiesService.getScriptProperties().getProperty("LINE_CHANNEL_ACCESS_TOKEN");
+  if (!token) return { status: "error", message: "LINE_CHANNEL_ACCESS_TOKEN が未設定です。" };
+  var response = UrlFetchApp.fetch("https://api.line.me/v2/bot/info", {
+    method: "get",
+    headers: { Authorization: "Bearer " + token },
+    muteHttpExceptions: true
+  });
+  if (response.getResponseCode() !== 200) {
+    return { status: "error", code: response.getResponseCode(), message: response.getContentText().slice(0, 200) };
+  }
+  var info = JSON.parse(response.getContentText() || "{}");
+  return { status: "success", displayName: info.displayName || "", basicId: info.basicId || "" };
 }
 
 function getLineDisplayName(userId) {
@@ -560,7 +579,7 @@ function postLinePush(userId, token, message) {
     return { ok: true, message: "" };
   }
   var body = response.getContentText();
-  if (body.indexOf("INVALID_RECEIVER") !== -1) {
+  if (body.indexOf("INVALID_RECEIVER") !== -1 || body.indexOf("Failed to send messages") !== -1) {
     return {
       ok: false,
       message: "確認メッセージを届けるには、この公式アカウントを友だち追加してください。"

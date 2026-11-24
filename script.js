@@ -711,8 +711,8 @@ async function trySendInChat(message, text) {
   const permissionError = await ensureChatPermission();
   if (permissionError) return { ok: false, message: permissionError };
   const payloads = [];
-  if (text) payloads.push([{ type: "text", text: text }]);
   if (message) payloads.push([message]);
+  if (text) payloads.push([{ type: "text", text: text }]);
   let lastError = "";
   for (let index = 0; index < payloads.length; index += 1) {
     try {
