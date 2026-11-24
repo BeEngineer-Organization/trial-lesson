@@ -326,8 +326,8 @@ function renderCourses() {
   }
 
   const groups = [
-    { title: "【1時間講座】", durationMinutes: 60 },
-    { title: "【2時間講座】", durationMinutes: 120 }
+    { minutes: "60分", durationMinutes: 60, timeClass: "is-short" },
+    { minutes: "120分", durationMinutes: 120, timeClass: "is-long" }
   ];
 
   groups.forEach(group => {
@@ -341,7 +341,10 @@ function renderCourses() {
     toggle.className = "course-group-toggle";
     toggle.setAttribute("aria-expanded", "false");
     const title = document.createElement("span");
-    title.textContent = group.title;
+    const time = document.createElement("span");
+    time.className = `course-group-time ${group.timeClass}`;
+    time.textContent = group.minutes;
+    title.append(time, "コース");
     const icon = document.createElement("span");
     icon.className = "course-group-icon";
     icon.setAttribute("aria-hidden", "true");

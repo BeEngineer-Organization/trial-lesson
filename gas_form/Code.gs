@@ -15,6 +15,8 @@
  * https://keigo-fujiwara.github.io/new_year_2027_demo/src/new_year_2027/data/schedule.json
  * スケジュールを変えたあとは、デモLP側の schedule.json を公開すれば両方の申込画面に反映される。
  * 校舎の追加・削除をしたときは、prepareGoogleForm を再実行する。
+ * 回答シートの空欄列は、フォームとつながっているあいだは削除できない。
+ * cleanupResponseColumns を実行すると、不要な列を外し、以降の回答は新しいシートへ入る。
  * 質問タイトルは変更しない。変えると画面からの送信先が外れる。
  *
  * 1回の申込は、Googleフォームの回答1件になる。
@@ -85,6 +87,56 @@ function prepareGoogleForm() {
   var message = "フォームの質問を整えました。個人情報の説明はフォーム冒頭の1か所だけです。ウェブアプリを新しいバージョンで更新してください。";
   Logger.log(message);
   return message;
+}
+
+function cleanupResponseColumns() {
+  var form = getForm();
+  var spreadsheetId = form.getDestinationId();
+  if (!spreadsheetId) throw new Error("回答先のスプレッドシートがありません。");
+  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = findResponseSheet(spreadsheet, form);
+  var sheetName = sheet.getName();
+  form.removeDestination();
+  var lastColumn = sheet.getLastColumn();
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  var keepTitles = { "タイムスタンプ": true, "Timestamp": true };
+  QUESTIONS.forEach(function(spec) { keepTitles[spec.title] = true; });
+  var bestColumn = {};
+  for (var column = 1; column <= headers.length; column += 1) {
+    var title = String(headers[column - 1] || "");
+    if (!keepTitles[title]) continue;
+    var filled = 0;
+    if (lastRow > 1) {
+      sheet.getRange(2, column, lastRow - 1, 1).getValues().forEach(function(row) {
+        if (String(row[0]).trim()) filled += 1;
+      });
+    }
+    if (!bestColumn[title] || filled >= bestColumn[title].filled) {
+      bestColumn[title] = { column: column, filled: filled };
+    }
+  }
+  var keepColumns = {};
+  Object.keys(bestColumn).forEach(function(title) {
+    keepColumns[bestColumn[title].column] = true;
+  });
+  for (var index = headers.length; index >= 1; index -= 1) {
+    if (!keepColumns[index]) sheet.deleteColumn(index);
+  }
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, spreadsheetId);
+  var message = "不要な列を「" + sheetName + "」から削除しました。これ以降の回答は、新しく作られたシートに入ります。";
+  Logger.log(message);
+  return message;
+}
+
+function findResponseSheet(spreadsheet, form) {
+  var formId = form.getId();
+  var sheets = spreadsheet.getSheets();
+  for (var i = 0; i < sheets.length; i += 1) {
+    var url = sheets[i].getFormUrl();
+    if (url && url.indexOf(formId) !== -1) return sheets[i];
+  }
+  throw new Error("回答用のシートが見つかりません。");
 }
 
 function submitToGoogleForm(data) {

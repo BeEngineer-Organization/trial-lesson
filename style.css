@@ -252,6 +252,14 @@ h2 {
   background: #e9f9ef;
 }
 
+.course-group-time.is-short {
+  color: #ff3b3b;
+}
+
+.course-group-time.is-long {
+  color: #1f4fe0;
+}
+
 .course-group-icon {
   flex-shrink: 0;
   margin-left: 12px;

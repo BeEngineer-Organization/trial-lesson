@@ -180,6 +180,8 @@
       color: #222;
     }
 
+    .question.is-centered { text-align: center; }
+
     .step { display: none; }
     .step.is-active { display: block; }
 
@@ -209,6 +211,9 @@
     }
 
     .course-group-toggle:hover { background: #e9f9ef; }
+
+    .course-group-time.is-short { color: #ff3b3b; }
+    .course-group-time.is-long { color: #1f4fe0; }
 
     .course-group-icon {
       flex-shrink: 0;
@@ -465,6 +470,15 @@
       line-height: 1.5;
     }
 
+    .confirm-edit {
+      display: block;
+      margin-top: 8px;
+      color: #06C755;
+      font-size: 13px;
+      font-weight: bold;
+      text-align: right;
+    }
+
     .line-link {
       display: block;
       box-sizing: border-box;
@@ -556,8 +570,8 @@
 
         <section class="step" data-step="3">
           <p class="progress">3 / 7</p>
-          <p class="question">受講する無料体験講座を選んでください。</p>
-          <p class="hint">複数選択できます。</p>
+          <p class="question is-centered">受講する無料体験講座を選んでください。</p>
+          <p class="hint">複数の講座に申し込み、参加できます。</p>
           <div id="course-list"></div>
           <button type="button" class="next-btn" disabled>次へ進む</button>
         </section>
@@ -609,7 +623,7 @@
       <p id="done-guide" class="line-guide"></p>
       <a id="campus-line-link" class="line-link" target="_blank" rel="noopener noreferrer">友だち追加する</a>
       <button type="button" id="restart-btn">他の校舎でも申し込む</button>
-      <button type="button" id="back-btn">戻る</button>
+      <button type="button" id="back-btn">とじる</button>
     </div>
 
   </div>
@@ -859,8 +873,8 @@
       }
 
       const groups = [
-        { title: "【1時間講座】", durationMinutes: 60 },
-        { title: "【2時間講座】", durationMinutes: 120 }
+        { minutes: "60分", durationMinutes: 60, timeClass: "is-short" },
+        { minutes: "120分", durationMinutes: 120, timeClass: "is-long" }
       ];
       groups.forEach(group => {
         const courses = campus.courses.filter(course => course.durationMinutes === group.durationMinutes);
@@ -872,7 +886,10 @@
         toggle.className = "course-group-toggle";
         toggle.setAttribute("aria-expanded", "false");
         const title = document.createElement("span");
-        title.textContent = group.title;
+        const time = document.createElement("span");
+        time.className = `course-group-time ${group.timeClass}`;
+        time.textContent = group.minutes;
+        title.append(time, "コース");
         const icon = document.createElement("span");
         icon.className = "course-group-icon";
         icon.setAttribute("aria-hidden", "true");
@@ -948,7 +965,10 @@
         valueEl.className = "confirm-value";
         if (stepNumber === 3) appendCourseLines(valueEl, data.courses);
         else valueEl.textContent = value;
-        button.append(labelEl, valueEl);
+        const editEl = document.createElement("span");
+        editEl.className = "confirm-edit";
+        editEl.textContent = "修正する";
+        button.append(labelEl, valueEl, editEl);
         button.addEventListener("click", () => {
           returnToConfirm = true;
           showStep(stepNumber);
@@ -1073,6 +1093,15 @@
         });
     }
 
+    function closeApplication() {
+      const card = document.querySelector(".card");
+      if (card) card.hidden = true;
+      try {
+        if (window.google && google.script && google.script.host) google.script.host.close();
+      } catch (error) {}
+      window.close();
+    }
+
     function setupPage() {
       const gradeList = document.getElementById("grade-list");
       GRADES.forEach(grade => gradeList.appendChild(createChoice("radio", "grade", grade, false)));
@@ -1098,7 +1127,7 @@
       });
       document.getElementById("campus-preview-toggle").addEventListener("click", toggleCampusPreview);
       document.getElementById("restart-btn").addEventListener("click", resetForm);
-      document.getElementById("back-btn").addEventListener("click", () => history.back());
+      document.getElementById("back-btn").addEventListener("click", closeApplication);
     }
 
     document.addEventListener("DOMContentLoaded", () => {
