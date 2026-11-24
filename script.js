@@ -714,6 +714,9 @@ async function trySendInChat(message) {
 }
 
 async function getLineProfile() {
+  if (typeof liff === "undefined" || !liff.isLoggedIn || !liff.isLoggedIn()) {
+    return { userId: "", displayName: "" };
+  }
   try {
     const profile = await liff.getProfile();
     return {
@@ -821,7 +824,7 @@ async function submitApplication() {
         userId: profile.userId,
         messageText,
         flexMessage,
-        deliverLine: !sentInChat && index === 0
+        deliverLine: !sentInChat && index === 0 && Boolean(profile.userId)
       });
       if (!result || result.status !== "success") {
         const detail = result && result.message ? result.message : "";
@@ -900,31 +903,14 @@ window.addEventListener("DOMContentLoaded", () => {
         return;
       }
       setupForm();
-      startLiff();
+      showConsent();
     })
     .catch(err => {
       showError(err && err.message ? err.message : "講座情報を読み込めませんでした。");
     });
 });
 
-function startLiff() {
-  updateStatus("LINE SDK初期化中...");
-
-  if (typeof liff === "undefined") {
-    showError("エラー: LINE SDKの読み込みに失敗しました。");
-    return;
-  }
-
-  liff.init({ liffId: LIFF_ID })
-    .then(() => {
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
-      }
-      document.getElementById("status").style.display = "none";
-      document.getElementById("consent-step").style.display = "block";
-    })
-    .catch(err => {
-      showError(`初期化エラー: ${err.message || err}`);
-    });
+function showConsent() {
+  document.getElementById("status").style.display = "none";
+  document.getElementById("consent-step").style.display = "block";
 }
