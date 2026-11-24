@@ -856,11 +856,15 @@ async function submitApplication() {
 }
 
 function closeLine() {
-  if (liffInClient()) {
-    liff.closeWindow();
-    return;
-  }
-  history.back();
+  try {
+    if (typeof liff !== "undefined" && typeof liff.closeWindow === "function") {
+      liff.closeWindow();
+    }
+  } catch (error) {}
+  try {
+    window.close();
+  } catch (error) {}
+  window.location.href = "https://line.me/R/nv/chat";
 }
 
 function startApplication() {
