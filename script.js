@@ -860,16 +860,16 @@ async function submitApplication() {
   }
 }
 
-function closeLine() {
+function closeLine(event) {
+  if (event) event.preventDefault();
   const chatUrl = "https://line.me/R/nv/chat";
   try {
     if (typeof liff !== "undefined" && liff.openWindow) {
       liff.openWindow({ url: chatUrl, external: true });
+      return;
     }
   } catch (error) {}
-  try {
-    if (typeof liff !== "undefined" && liff.closeWindow) liff.closeWindow();
-  } catch (error) {}
+  window.location.href = chatUrl;
 }
 
 function startApplication() {
