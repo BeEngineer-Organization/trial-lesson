@@ -853,7 +853,12 @@ async function submitApplication() {
       if (index === 0 && result.message) lineNote = result.message;
       lineDelivered = lineDelivered || Boolean(result.lineSent);
     }
-    showDone(data.campus, lineDelivered ? "" : lineNote);
+    const deliveryNote = sentInChat
+      ? "確認メッセージは、この申込を開いたトークに送りました。"
+      : lineDelivered
+        ? "確認メッセージは、このミニアプリの公式アカウントとのトークに届きます。校舎専用LINEとは別のトークです。"
+        : (lineNote || "確認メッセージは、公式アカウントとのトークから開いたときだけ、そのトークに届きます。");
+    showDone(data.campus, deliveryNote);
   } catch (err) {
     const detail = err && err.message ? err.message : "送信できませんでした。もう一度お試しください。";
     if (lineDelivered && detail.indexOf("スプレッドシート") === -1) {
@@ -912,6 +917,12 @@ function setupForm() {
   document.getElementById("campus-preview-toggle").addEventListener("click", toggleCampusPreview);
   document.getElementById("restart-btn").addEventListener("click", resetForm);
   document.getElementById("back-btn").addEventListener("click", closeLine);
+  document.getElementById("campus-line-link").addEventListener("click", event => {
+    const url = event.currentTarget.href;
+    if (!url || !liffInClient() || !liff.openWindow) return;
+    event.preventDefault();
+    liff.openWindow({ url: url, external: true });
+  });
 }
 
 window.addEventListener("DOMContentLoaded", () => {
