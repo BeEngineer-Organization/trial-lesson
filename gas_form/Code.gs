@@ -92,7 +92,7 @@ function prepareGoogleForm() {
 
 function cleanupResponseColumns() {
   var form = getForm();
-  var spreadsheetId = form.getDestinationId();
+  var spreadsheetId = destinationId(form);
   if (!spreadsheetId) throw new Error("回答先のスプレッドシートがありません。");
   var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
   var sheet = findResponseSheet(spreadsheet, form);
@@ -176,17 +176,31 @@ function splitCourseColumns() {
 
 function ensureSplitSheet(form) {
   var sheet = responseSheet(form);
-  if (form.getDestinationId()) form.removeDestination();
+  if (destinationId(form)) {
+    try {
+      form.removeDestination();
+    } catch (error) {}
+  }
   rewriteCourseColumn(sheet);
   return sheet;
 }
 
+function destinationId(form) {
+  try {
+    return form.getDestinationId() || "";
+  } catch (error) {
+    return "";
+  }
+}
+
 function responseSheet(form) {
   var props = PropertiesService.getScriptProperties();
-  var spreadsheetId = form.getDestinationId() || props.getProperty("RESPONSE_SPREADSHEET_ID");
-  if (!spreadsheetId) throw new Error("回答先のスプレッドシートがありません。");
-  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-  props.setProperty("RESPONSE_SPREADSHEET_ID", spreadsheetId);
+  var spreadsheetId = destinationId(form) || props.getProperty("RESPONSE_SPREADSHEET_ID") || "";
+  var spreadsheet = spreadsheetId ? SpreadsheetApp.openById(spreadsheetId) : findSpreadsheetNearForm(form);
+  if (!spreadsheet) {
+    throw new Error("回答先のスプレッドシートが見つかりません。フォームと同じフォルダに、回答用のスプレッドシートがあるか確認してください。");
+  }
+  props.setProperty("RESPONSE_SPREADSHEET_ID", spreadsheet.getId());
   var savedName = props.getProperty("RESPONSE_SHEET_NAME");
   if (savedName && spreadsheet.getSheetByName(savedName)) {
     return spreadsheet.getSheetByName(savedName);
@@ -215,6 +229,78 @@ function responseSheet(form) {
   if (!sheet) throw new Error("回答用のシートが見つかりません。");
   props.setProperty("RESPONSE_SHEET_NAME", sheet.getName());
   return sheet;
+}
+
+function findSpreadsheetNearForm(form) {
+  var formId = form.getId();
+  var fromFolder = findSpreadsheetInParents(form, formId);
+  if (fromFolder) return fromFolder;
+  var title = String(form.getTitle() || "");
+  var names = [];
+  if (title) {
+    names.push(title + " (回答)");
+    names.push(title + "（回答）");
+    names.push(title);
+  }
+  for (var i = 0; i < names.length; i += 1) {
+    var files = DriveApp.getFilesByName(names[i]);
+    while (files.hasNext()) {
+      var spreadsheet = openSpreadsheet(files.next().getId());
+      if (spreadsheet && spreadsheetHasApplication(spreadsheet, formId)) return spreadsheet;
+    }
+  }
+  if (!title) return null;
+  var query = 'mimeType = "' + MimeType.GOOGLE_SHEETS + '" and title contains "' + title.replace(/"/g, "") + '"';
+  var found = DriveApp.searchFiles(query);
+  var checked = 0;
+  while (found.hasNext() && checked < 20) {
+    checked += 1;
+    var match = openSpreadsheet(found.next().getId());
+    if (match && spreadsheetHasApplication(match, formId)) return match;
+  }
+  return null;
+}
+
+function findSpreadsheetInParents(form, formId) {
+  var parents = DriveApp.getFileById(form.getId()).getParents();
+  while (parents.hasNext()) {
+    var files = parents.next().getFilesByType(MimeType.GOOGLE_SHEETS);
+    while (files.hasNext()) {
+      var spreadsheet = openSpreadsheet(files.next().getId());
+      if (spreadsheet && spreadsheetHasApplication(spreadsheet, formId)) return spreadsheet;
+    }
+  }
+  return null;
+}
+
+function openSpreadsheet(id) {
+  try {
+    return SpreadsheetApp.openById(id);
+  } catch (error) {
+    return null;
+  }
+}
+
+function spreadsheetHasApplication(spreadsheet, formId) {
+  var sheets = spreadsheet.getSheets();
+  for (var i = 0; i < sheets.length; i += 1) {
+    var url = "";
+    try {
+      url = sheets[i].getFormUrl() || "";
+    } catch (error) {
+      url = "";
+    }
+    if (url && url.indexOf(formId) !== -1) return true;
+    var width = Math.max(sheets[i].getLastColumn(), 1);
+    var headers = sheets[i].getRange(1, 1, 1, width).getValues()[0].map(function(value) {
+      return String(value || "");
+    });
+    if (headers.indexOf("申込講座") !== -1) return true;
+    if (headers.indexOf("メールアドレス") !== -1 && headers.indexOf("新学年") !== -1 && (headers.indexOf("講座名") !== -1 || headers.indexOf("参加者氏名") !== -1)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function rewriteCourseColumn(sheet) {

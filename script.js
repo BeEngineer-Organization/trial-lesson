@@ -690,12 +690,6 @@ function resetForm() {
   showStep(1);
 }
 
-function isInvalidReceiver(err) {
-  const code = err && err.code ? String(err.code) : "";
-  const message = err && err.message ? String(err.message) : "";
-  return code === "INVALID_RECEIVER" || /INVALID_RECEIVER|invalid receiver/i.test(message);
-}
-
 function liffInClient() {
   try {
     return typeof liff !== "undefined" && !!liff.isInClient && liff.isInClient();
@@ -704,20 +698,19 @@ function liffInClient() {
   }
 }
 
-async function trySendInChat(message) {
+async function trySendInChat(message, text) {
   if (!liffInClient()) return false;
-  const context = liff.getContext ? liff.getContext() : null;
-  const inChat = context && ["utou", "group", "room"].includes(context.type);
-  if (!inChat) return false;
   try {
     await liff.sendMessages([message]);
     return true;
-  } catch (err) {
-    if (isInvalidReceiver(err)) return false;
-    if (/permission|403|FORBIDDEN/i.test(err && err.message ? err.message : "")) {
-      throw new Error("LINEへ申込内容を送れませんでした。LIFFのスコープ「chat_message.write」を有効にし、トークのメッセージから開き直してください。");
+  } catch (error) {
+    if (!text) return false;
+    try {
+      await liff.sendMessages([{ type: "text", text: text }]);
+      return true;
+    } catch (textError) {
+      return false;
     }
-    throw new Error("LINEへ申込内容を送れませんでした。公式アカウントとのトークから開き直してください。");
   }
 }
 
@@ -812,7 +805,7 @@ async function submitApplication() {
   try {
     const messageText = buildMessage(data);
     const flexMessage = buildFlexMessage(data);
-    sentInChat = await trySendInChat(flexMessage);
+    sentInChat = await trySendInChat(flexMessage, messageText);
     lineDelivered = sentInChat;
     const profile = await getLineProfile();
     const courseDetails = data.courses.map(courseParts);
@@ -857,14 +850,12 @@ async function submitApplication() {
 
 function closeLine() {
   try {
-    if (typeof liff !== "undefined" && typeof liff.closeWindow === "function") {
-      liff.closeWindow();
-    }
+    if (liffInClient() && liff.closeWindow) liff.closeWindow();
   } catch (error) {}
-  try {
-    window.close();
-  } catch (error) {}
-  window.location.href = "https://line.me/R/nv/chat";
+  window.setTimeout(() => {
+    if (document.visibilityState === "hidden") return;
+    window.location.href = "line://nv/chat";
+  }, 400);
 }
 
 function startApplication() {
