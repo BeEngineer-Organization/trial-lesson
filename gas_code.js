@@ -19,8 +19,8 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify(lineBotInfo()))
       .setMimeType(ContentService.MimeType.JSON);
   }
-  reformatCourseColumn();
   if (!e || !e.parameter || !e.parameter.payload) {
+    reformatCourseColumn();
     return ContentService.createTextOutput(JSON.stringify({ status: "success", version: 8 }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -42,7 +42,6 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    reformatCourseColumn();
     var data = JSON.parse(e.postData.contents);
     if (data && Array.isArray(data.events)) {
       handleLineWebhook(data);
@@ -121,9 +120,7 @@ function appendApplication(data) {
   if (!sheet) {
     sheet = ss.insertSheet("LINE申込", 0);
   }
-  ss.setActiveSheet(sheet);
-  ss.moveActiveSheet(1);
-  ensureApplicationSheet(sheet);
+  if (!hasCurrentHeaders(sheet)) ensureApplicationSheet(sheet);
 
   var courses = splitCourseLines(data.courseTitles, data.courseDatetimes, data.courses);
   var courseCount = Math.max(courses.titles.length, courses.datetimes.length, 1);
@@ -143,10 +140,35 @@ function appendApplication(data) {
       data.lineName || ""
     ]);
   }
-  ensureRowCapacity(sheet, sheet.getLastRow() + rows.length);
-  sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
+  var firstRow = sheet.getLastRow() + 1;
+  ensureRowCapacity(sheet, firstRow + rows.length - 1);
+  sheet.getRange(firstRow, 1, rows.length, HEADERS.length).setValues(rows);
 
-  layoutCourseColumns(sheet);
+  layoutNewRows(sheet, firstRow, rows);
+}
+
+function hasCurrentHeaders(sheet) {
+  if (sheet.getLastRow() === 0) return false;
+  var current = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
+  for (var i = 0; i < HEADERS.length; i++) {
+    if (String(current[i] || "") !== HEADERS[i]) return false;
+  }
+  return true;
+}
+
+function layoutNewRows(sheet, firstRow, rows) {
+  var range = sheet.getRange(firstRow, 4, rows.length, 2);
+  range.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  range.setVerticalAlignment("middle");
+  var titleWidth = Math.max(sheet.getColumnWidth(4), 280);
+  var timeWidth = Math.max(sheet.getColumnWidth(5), 240);
+  for (var i = 0; i < rows.length; i++) {
+    var lineCount = Math.max(
+      visualLineCount(String(rows[i][3] || "").split("\n"), titleWidth),
+      visualLineCount(String(rows[i][4] || "").split("\n"), timeWidth)
+    );
+    sheet.setRowHeight(firstRow + i, Math.max(32, lineCount * 32));
+  }
 }
 
 function ensureRowCapacity(sheet, requiredLastRow) {

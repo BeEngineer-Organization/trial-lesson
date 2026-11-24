@@ -820,37 +820,34 @@ async function submitApplication() {
   try {
     const messageText = buildMessage(data);
     const flexMessage = buildFlexMessage(data);
-    const sent = await trySendInChat(flexMessage, messageText);
+    const [sent, profile] = await Promise.all([
+      trySendInChat(flexMessage, messageText),
+      getLineProfile()
+    ]);
     sentInChat = sent.ok;
     const sendError = sent.message || "";
     lineDelivered = sentInChat;
-    const profile = await getLineProfile();
     const courseDetails = data.courses.map(courseParts);
-    const submittedAt = new Date().toISOString();
-    for (let index = 0; index < courseDetails.length; index += 1) {
-      const course = courseDetails[index];
-      const result = await requestGas({
-        ...data,
-        courses: [data.courses[index]],
-        courseTitles: [course.title],
-        courseDatetimes: [course.datetime],
-        submittedAt,
-        lineName: profile.displayName,
-        userId: profile.userId,
-        messageText,
-        flexMessage,
-        deliverLine: !sentInChat && index === 0
-      });
-      if (!result || result.status !== "success") {
-        const detail = result && result.message ? result.message : "";
-        if (lineDelivered) {
-          throw new Error("LINEへは送信しましたが、スプレッドシートに保存できませんでした。もう一度お試しください。");
-        }
-        throw new Error(detail || "申込を保存できませんでした。");
+    const result = await requestGas({
+      ...data,
+      courseTitles: courseDetails.map(course => course.title),
+      courseDatetimes: courseDetails.map(course => course.datetime),
+      submittedAt: new Date().toISOString(),
+      lineName: profile.displayName,
+      userId: profile.userId,
+      messageText: sentInChat ? "" : messageText,
+      flexMessage: sentInChat ? null : flexMessage,
+      deliverLine: !sentInChat
+    });
+    if (!result || result.status !== "success") {
+      const detail = result && result.message ? result.message : "";
+      if (lineDelivered) {
+        throw new Error("LINEへは送信しましたが、スプレッドシートに保存できませんでした。もう一度お試しください。");
       }
-      if (index === 0 && result.message) lineNote = result.message;
-      lineDelivered = lineDelivered || Boolean(result.lineSent);
+      throw new Error(detail || "申込を保存できませんでした。");
     }
+    if (result.message) lineNote = result.message;
+    lineDelivered = lineDelivered || Boolean(result.lineSent);
     const deliveryNote = sentInChat
       ? "確認メッセージは、この申込を開いたトークに送りました。"
       : lineDelivered
