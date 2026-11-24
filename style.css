@@ -260,6 +260,10 @@ h2 {
   color: #1f4fe0;
 }
 
+.course-group-time.is-other {
+  color: #0e9b8c;
+}
+
 .course-group-icon {
   flex-shrink: 0;
   margin-left: 12px;

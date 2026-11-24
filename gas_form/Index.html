@@ -192,6 +192,14 @@
       font-size: 13px;
     }
 
+    .hint.is-readable {
+      margin: -4px 0 18px;
+      color: #222;
+      font-size: 16px;
+      font-weight: bold;
+      line-height: 1.6;
+    }
+
     .course-group { margin-bottom: 12px; }
 
     .course-group-toggle {
@@ -214,6 +222,7 @@
 
     .course-group-time.is-short { color: #ff3b3b; }
     .course-group-time.is-long { color: #1f4fe0; }
+    .course-group-time.is-other { color: #0e9b8c; }
 
     .course-group-icon {
       flex-shrink: 0;
@@ -410,6 +419,24 @@
       line-height: 1.5;
     }
 
+    .mail-from {
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      background: #f7f7f7;
+      border-radius: 8px;
+      color: #333;
+      font-size: 13px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .mail-from strong {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 14px;
+      word-break: break-all;
+    }
+
     .input-hint.is-alert {
       color: #d9534f;
       font-weight: bold;
@@ -571,7 +598,7 @@
         <section class="step" data-step="3">
           <p class="progress">3 / 7</p>
           <p class="question is-centered">受講する無料体験講座を選んでください。</p>
-          <p class="hint">複数の講座に申し込み、参加できます。</p>
+          <p class="hint is-readable">複数の講座に申し込み、参加できます。</p>
           <div id="course-list"></div>
           <button type="button" class="next-btn" disabled>次へ進む</button>
         </section>
@@ -597,6 +624,7 @@
           <p class="question">確認のため、もう一度入力してください。</p>
           <input type="email" id="email-confirm" name="email-confirm" maxlength="254" inputmode="email" autocomplete="off" placeholder="例）taro@example.com">
           <p class="input-hint" id="email-hint">入力したメールアドレスに、申込内容を送信します。</p>
+          <p class="mail-from">申込内容の確認メールは、次のアドレスから届きます。<br><strong>keigo_fujiwara@waotech.jp</strong></p>
           <button type="button" class="next-btn" disabled>次へ進む</button>
         </section>
 
@@ -611,6 +639,7 @@
         <section class="step" data-step="8">
           <p class="question">申込内容の確認</p>
           <p class="edit-hint">下の項目をタップすると、<br>その内容を修正できます。</p>
+          <p class="mail-from">確認メールは <strong>keigo_fujiwara@waotech.jp</strong> から届きます。</p>
           <div id="confirm-list"></div>
           <button type="button" id="submit-btn">申込</button>
         </section>
@@ -872,10 +901,13 @@
         return;
       }
 
-      const groups = [
-        { minutes: "60分", durationMinutes: 60, timeClass: "is-short" },
-        { minutes: "120分", durationMinutes: 120, timeClass: "is-long" }
-      ];
+      const groups = [...new Set(campus.courses.map(course => course.durationMinutes))]
+        .sort((a, b) => a - b)
+        .map(durationMinutes => {
+          if (durationMinutes === 60) return { minutes: "60分", durationMinutes, timeClass: "is-short" };
+          if (durationMinutes === 120) return { minutes: "120分", durationMinutes, timeClass: "is-long" };
+          return { minutes: `${durationMinutes}分`, durationMinutes, timeClass: "is-other" };
+        });
       groups.forEach(group => {
         const courses = campus.courses.filter(course => course.durationMinutes === group.durationMinutes);
         if (courses.length === 0) return;
@@ -1010,7 +1042,7 @@
       const campus = findCampus(campusName);
       const extra = mailNote
         ? mailNote
-        : "確認メールを送信しました。\n届かない場合は、迷惑メールもご確認ください。";
+        : "確認メールを keigo_fujiwara@waotech.jp から送信しました。\n届かない場合は、迷惑メールもご確認ください。";
       document.getElementById("done-thanks").textContent =
         `申込ありがとうございました。\n${campusName}からのご連絡をお待ちください。\n\n${extra}`;
       const guide = document.getElementById("done-guide");
@@ -1094,11 +1126,6 @@
     }
 
     function closeApplication() {
-      const card = document.querySelector(".card");
-      if (card) card.hidden = true;
-      try {
-        if (window.google && google.script && google.script.host) google.script.host.close();
-      } catch (error) {}
       window.close();
     }
 

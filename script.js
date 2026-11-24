@@ -129,19 +129,21 @@ async function loadCampuses() {
   const year = Number(schedule.year);
   const holidays = new Set(Array.isArray(schedule.holidays) ? schedule.holidays : []);
   const items = Array.isArray(schedule.items) ? schedule.items : [];
-  CAMPUSES = (schedule.campuses || []).filter(campus => !campus.hidden).map(campus => {
+  const removedCampuses = new Set(["横浜校"]);
+  CAMPUSES = (schedule.campuses || []).filter(campus => !campus.hidden && !removedCampuses.has(campus.name)).map(campus => {
     const address = Array.isArray(campus.address) ? campus.address.filter(Boolean).join(" ") : "";
     const access = Array.isArray(campus.access) ? campus.access.filter(Boolean).join(" ") : "";
-    const courses = items.filter(item => item.campus === campus.key).flatMap(item => {
+    const courses = items.filter(item => item.campus === campus.key).map(item => {
       const time = String(item.time || "").split("-");
       const date = scheduleDate(year, item.date);
-      return (item.events || []).map(event => ({
-        title: event.name,
+      const title = (item.events || []).map(event => event.name).filter(Boolean).join("・");
+      return {
+        title,
         date,
         start: time[0] || "",
         end: time[1] || "",
         holiday: holidays.has(item.date)
-      }));
+      };
     }).filter(course => course.title && course.date && course.start && course.end)
       .sort(compareCourses)
       .filter(course => isCourseOpen(course.date, 2))
@@ -325,10 +327,13 @@ function renderCourses() {
     return;
   }
 
-  const groups = [
-    { minutes: "60分", durationMinutes: 60, timeClass: "is-short" },
-    { minutes: "120分", durationMinutes: 120, timeClass: "is-long" }
-  ];
+  const groups = [...new Set(campus.courses.map(course => course.durationMinutes))]
+    .sort((a, b) => a - b)
+    .map(durationMinutes => {
+      if (durationMinutes === 60) return { minutes: "60分", durationMinutes, timeClass: "is-short" };
+      if (durationMinutes === 120) return { minutes: "120分", durationMinutes, timeClass: "is-long" };
+      return { minutes: `${durationMinutes}分`, durationMinutes, timeClass: "is-other" };
+    });
 
   groups.forEach(group => {
     const courses = campus.courses.filter(course => course.durationMinutes === group.durationMinutes);

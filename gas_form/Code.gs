@@ -623,15 +623,16 @@ function buildCampuses() {
       if (item.campus !== campus.key) return;
       var time = String(item.time || "").split("-");
       var date = scheduleDate(year, item.date);
-      (item.events || []).forEach(function(event) {
-        if (!event.name || !date || !time[0] || !time[1]) return;
-        courses.push({
-          title: event.name,
-          date: date,
-          start: time[0],
-          end: time[1],
-          holiday: !!holidays[item.date]
-        });
+      var title = (item.events || []).map(function(event) {
+        return event.name;
+      }).filter(Boolean).join("・");
+      if (!title || !date || !time[0] || !time[1]) return;
+      courses.push({
+        title: title,
+        date: date,
+        start: time[0],
+        end: time[1],
+        holiday: !!holidays[item.date]
       });
     });
     courses.sort(compareCourses);
