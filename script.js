@@ -702,6 +702,14 @@ async function trySendInChat(message, text) {
   if (typeof liff === "undefined" || !liff.sendMessages) {
     return { ok: false, message: "確認メッセージは、LINEのトークから開いたときだけ送れます。" };
   }
+  if (!openedFromChat()) {
+    return {
+      ok: false,
+      message: "公式アカウントとのトーク以外から開いたため、トークへは送れませんでした。トーク画面のメニューやメッセージから開いてください。"
+    };
+  }
+  const permissionError = await ensureChatPermission();
+  if (permissionError) return { ok: false, message: permissionError };
   const payloads = [];
   if (text) payloads.push([{ type: "text", text: text }]);
   if (message) payloads.push([message]);
@@ -713,6 +721,9 @@ async function trySendInChat(message, text) {
     } catch (error) {
       lastError = error && error.message ? error.message : "";
     }
+  }
+  if (/permission/i.test(lastError)) {
+    lastError = "トークへの送信が許可されていません。「最近使用したサービス」から開き直した場合も送れません。トーク画面から開き直してください。";
   }
   return { ok: false, message: lastError };
 }
@@ -872,7 +883,54 @@ function closeLine(event) {
   window.location.href = chatUrl;
 }
 
-function startApplication() {
+function chatContextType() {
+  try {
+    const context = liff.getContext ? liff.getContext() : null;
+    return context && context.type ? context.type : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function openedFromChat() {
+  return ["utou", "group", "room"].includes(chatContextType());
+}
+
+async function chatPermissionState() {
+  if (typeof liff === "undefined" || !liff.permission || !liff.permission.query) return "granted";
+  try {
+    const status = await liff.permission.query("chat_message.write");
+    return status && status.state ? status.state : "granted";
+  } catch (error) {
+    return "granted";
+  }
+}
+
+function canRequestPermissionScreen() {
+  try {
+    return Boolean(liff.isApiAvailable && liff.isApiAvailable("skipChannelVerificationScreen"));
+  } catch (error) {
+    return false;
+  }
+}
+
+async function ensureChatPermission() {
+  const state = await chatPermissionState();
+  if (state === "granted") return "";
+  if (state === "unavailable") {
+    return "LINE Developersで、このミニアプリのスコープ「chat_message.write」がオフになっています。";
+  }
+  if (canRequestPermissionScreen()) {
+    try {
+      await liff.permission.requestAll();
+      if (await chatPermissionState() === "granted") return "";
+    } catch (error) {}
+  }
+  return "トークへの送信が許可されていません。LINEのトークを開き直し、許可画面で「許可する」を選んでください。";
+}
+
+async function startApplication() {
+  if (typeof liff !== "undefined" && openedFromChat()) await ensureChatPermission();
   document.getElementById("consent-step").style.display = "none";
   document.getElementById("apply-flow").style.display = "block";
   showStep(1);
