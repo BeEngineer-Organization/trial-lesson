@@ -696,8 +696,24 @@ function isInvalidReceiver(err) {
   return code === "INVALID_RECEIVER" || /INVALID_RECEIVER|invalid receiver/i.test(message);
 }
 
+function liffInClient() {
+  try {
+    return typeof liff !== "undefined" && !!liff.isInClient && liff.isInClient();
+  } catch (error) {
+    return false;
+  }
+}
+
+function liffLoggedIn() {
+  try {
+    return liffInClient() && !!liff.isLoggedIn && liff.isLoggedIn();
+  } catch (error) {
+    return false;
+  }
+}
+
 async function trySendInChat(message) {
-  if (typeof liff === "undefined" || !liff.isInClient()) return false;
+  if (!liffInClient()) return false;
   const context = liff.getContext ? liff.getContext() : null;
   const inChat = context && ["utou", "group", "room"].includes(context.type);
   if (!inChat) return false;
@@ -714,7 +730,7 @@ async function trySendInChat(message) {
 }
 
 async function getLineProfile() {
-  if (typeof liff === "undefined" || !liff.isLoggedIn || !liff.isLoggedIn()) {
+  if (!liffLoggedIn()) {
     return { userId: "", displayName: "" };
   }
   try {
@@ -851,7 +867,7 @@ async function submitApplication() {
 }
 
 function closeLine() {
-  if (typeof liff !== "undefined" && liff.isInClient && liff.isInClient()) {
+  if (liffInClient()) {
     liff.closeWindow();
     return;
   }
