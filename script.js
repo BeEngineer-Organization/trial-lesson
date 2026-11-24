@@ -698,38 +698,23 @@ function liffInClient() {
   }
 }
 
-async function canSendInChat() {
-  if (!liffInClient()) return false;
-  try {
-    const context = liff.getContext ? liff.getContext() : null;
-    const type = context && context.type;
-    if (!["utou", "group", "room"].includes(type)) return false;
-  } catch (error) {
-    return false;
-  }
-  try {
-    if (liff.permission && liff.permission.query) {
-      const status = await liff.permission.query("chat_message.write");
-      if (status && status.state !== "granted" && liff.permission.requestAll) {
-        await liff.permission.requestAll();
-      }
-    }
-  } catch (error) {}
-  return true;
-}
-
 async function trySendInChat(message, text) {
-  if (!(await canSendInChat())) return false;
+  if (typeof liff === "undefined" || !liff.sendMessages) {
+    return { ok: false, message: "確認メッセージは、LINEのトークから開いたときだけ送れます。" };
+  }
   const payloads = [];
   if (text) payloads.push([{ type: "text", text: text }]);
   if (message) payloads.push([message]);
+  let lastError = "";
   for (let index = 0; index < payloads.length; index += 1) {
     try {
       await liff.sendMessages(payloads[index]);
-      return true;
-    } catch (error) {}
+      return { ok: true, message: "" };
+    } catch (error) {
+      lastError = error && error.message ? error.message : "";
+    }
   }
-  return false;
+  return { ok: false, message: lastError };
 }
 
 async function getLineProfile() {
@@ -824,7 +809,9 @@ async function submitApplication() {
   try {
     const messageText = buildMessage(data);
     const flexMessage = buildFlexMessage(data);
-    sentInChat = await trySendInChat(flexMessage, messageText);
+    const sent = await trySendInChat(flexMessage, messageText);
+    sentInChat = sent.ok;
+    const sendError = sent.message || "";
     lineDelivered = sentInChat;
     const profile = await getLineProfile();
     const courseDetails = data.courses.map(courseParts);
@@ -857,7 +844,7 @@ async function submitApplication() {
       ? "確認メッセージは、この申込を開いたトークに送りました。"
       : lineDelivered
         ? "確認メッセージは、このミニアプリの公式アカウントとのトークに届きます。校舎専用LINEとは別のトークです。"
-        : (lineNote || "確認メッセージは、公式アカウントとのトークから開いたときだけ、そのトークに届きます。");
+        : [lineNote, sendError].filter(Boolean).join("\n") || "確認メッセージをトークへ送れませんでした。";
     showDone(data.campus, deliveryNote);
   } catch (err) {
     const detail = err && err.message ? err.message : "送信できませんでした。もう一度お試しください。";
@@ -874,13 +861,15 @@ async function submitApplication() {
 }
 
 function closeLine() {
+  const chatUrl = "https://line.me/R/nv/chat";
   try {
-    if (liffInClient() && liff.closeWindow) {
-      liff.closeWindow();
-      return;
+    if (typeof liff !== "undefined" && liff.openWindow) {
+      liff.openWindow({ url: chatUrl, external: true });
     }
   } catch (error) {}
-  window.location.href = "https://line.me/R/nv/chat";
+  try {
+    if (typeof liff !== "undefined" && liff.closeWindow) liff.closeWindow();
+  } catch (error) {}
 }
 
 function startApplication() {
