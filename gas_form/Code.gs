@@ -761,6 +761,24 @@ function deliverConfirmationMail(data) {
   }
 }
 
+function sendTestConfirmationMail() {
+  var result = deliverConfirmationMail({
+    name: "テスト 太郎",
+    grade: "新中学２年生",
+    campus: "梅田校",
+    school: "〇〇中学校",
+    email: Session.getEffectiveUser().getEmail(),
+    phone: "090-1234-5678",
+    courses: [{ title: "テスト講座", datetime: "2月23日（火祝）10:00-11:00" }],
+    postalCode: "〒000-0000",
+    address: "テスト住所",
+    access: "テストのアクセス",
+    mapUrl: "https://www.google.com/maps",
+    lineUrl: LINE_URLS["梅田校"] || ""
+  });
+  Logger.log(result.ok ? "テストメールを送信しました。" : result.message);
+}
+
 function resolveSenderEmail() {
   var requested = normalizeEmail(SENDER_EMAIL);
   if (!requested) return { email: "" };
