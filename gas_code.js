@@ -264,7 +264,7 @@ function layoutCourseColumns(sheet) {
   if (lastRow < 2) return 0;
   var range = sheet.getRange(2, 4, lastRow - 1, 2);
   range.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  range.setVerticalAlignment("top");
+  range.setVerticalAlignment("middle");
   var values = range.getValues();
   for (var i = 0; i < values.length; i++) {
     var titleLines = String(values[i][0] || "").split("\n");
