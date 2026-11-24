@@ -11,7 +11,10 @@
  *    アクセスできるユーザー: 全員
  * 3. 発行されたウェブアプリのURLを申込者に案内する
  *
- * 講座・校舎を変えたあとは、コードを保存してウェブアプリを新しいバージョンで更新する。
+ * 講座・校舎のスケジュールは、デモLPと同じ schedule.json を参照する。
+ * https://keigo-fujiwara.github.io/new_year_2027_demo/src/new_year_2027/data/schedule.json
+ * スケジュールを変えたあとは、デモLP側の schedule.json を公開すれば両方の申込画面に反映される。
+ * 校舎の追加・削除をしたときは、prepareGoogleForm を再実行する。
  * 質問タイトルは変更しない。変えると画面からの送信先が外れる。
  *
  * 1回の申込は、Googleフォームの回答1件になる。
@@ -25,9 +28,6 @@ var PRIVACY_POLICY_URL = "https://be-engineer.tech/privacy_policy";
 var SENDER_NAME = "BeEngineer";
 var SENDER_EMAIL = "";
 var CONSENT_CHOICE = "同意する";
-var CONSENT_DECLINE = "同意しない";
-var APPLY_PAGE_TITLE = "申込内容";
-var DECLINE_PAGE_TITLE = "お申し込みできません";
 var FORM_TITLE = "2027年度 春の無料体験講座の申込";
 var WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 var GRADES = [
@@ -39,7 +39,6 @@ var GRADES = [
   "新高校３年生"
 ];
 var QUESTIONS = [
-  { title: "個人情報の取り扱いへの同意", type: FormApp.ItemType.MULTIPLE_CHOICE },
   { title: "新学年", type: FormApp.ItemType.MULTIPLE_CHOICE },
   { title: "校舎", type: FormApp.ItemType.MULTIPLE_CHOICE },
   { title: "申込講座", type: FormApp.ItemType.PARAGRAPH_TEXT },
@@ -49,72 +48,12 @@ var QUESTIONS = [
   { title: "電話番号", type: FormApp.ItemType.TEXT }
 ];
 
-var CATALOG = {
-  closeDaysBefore: 2,
-  displayMonth: "2027-02",
-  commonCourses: [
-    { title: "Webページ開発体験", date: "2027-02-06", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-02-07", start: "11:00", end: "12:00" },
-    { title: "メェーメェーランゲーム", date: "2027-02-11", start: "14:00", end: "16:00" },
-    { title: "Webページ開発体験", date: "2027-02-13", start: "11:00", end: "12:00" },
-    { title: "ホワイトハッカー", date: "2027-02-13", start: "14:00", end: "16:00" },
-    { title: "バイブコーディング", date: "2027-02-14", start: "11:00", end: "12:00" },
-    { title: "Pythonで情報収集自動化", date: "2027-02-14", start: "14:00", end: "16:00" },
-    { title: "Webページ開発体験", date: "2027-02-20", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-02-21", start: "11:00", end: "12:00" },
-    { title: "ホワイトハッカー", date: "2027-02-23", start: "14:00", end: "16:00" },
-    { title: "Webページ開発体験", date: "2027-02-27", start: "11:00", end: "12:00" },
-    { title: "バイブコーディング", date: "2027-02-28", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-03-06", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-03-07", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-03-13", start: "11:00", end: "12:00" },
-    { title: "バイブコーディング", date: "2027-03-14", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-03-20", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-03-21", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-03-27", start: "11:00", end: "12:00" },
-    { title: "バイブコーディング", date: "2027-03-28", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-04-03", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-04-04", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-04-10", start: "11:00", end: "12:00" },
-    { title: "Webページ開発体験", date: "2027-04-11", start: "11:00", end: "12:00" }
-  ],
-  campuses: [
-    {
-      name: "京大本校",
-      lineUrl: "https://page.line.me/942ydzjx?oat_content=url&openQrModal=true",
-      postalCode: "〒606-8301",
-      address: "京都府京都市左京区吉田泉殿町１−３４ ダイショウ百万遍ビル1階",
-      access: "出町柳駅から徒歩10分"
-    },
-    {
-      name: "梅田校",
-      lineUrl: "https://line.me/R/ti/p/@759lvtlr?openQrModal=true",
-      postalCode: "〒530-0012",
-      address: "大阪府大阪市北区芝田１丁目４−１４ 芝田町ビル 5F",
-      access: "阪急梅田駅（茶屋町口）から徒歩1分"
-    },
-    {
-      name: "飯田橋校",
-      lineUrl: "https://line.me/R/ti/p/@028tlecq?oat_content=url&ts=07221501&openQrModal=true",
-      postalCode: "〒102-0071",
-      address: "東京都千代田区富士見２丁目１２−１３ フィル・パーク Kagulab.IIDABASHI",
-      access: "飯田橋駅から徒歩5分"
-    },
-    {
-      name: "横浜校",
-      lineUrl: "https://page.line.me/016pbnwr?oat_content=url&openQrModal=true",
-      postalCode: "〒220-0012",
-      address: "神奈川県横浜市西区みなとみらい 2-2-1 横浜ランドマークタワー 14F",
-      access: "みなとみらい駅から徒歩2分"
-    },
-    {
-      name: "首里校",
-      lineUrl: "https://line.me/R/ti/p/@153tdlvg?ts=07221502&oat_content=url&openQrModal=true",
-      postalCode: "〒903-0806",
-      address: "沖縄県那覇市首里汀良町１-２７",
-      access: "ゆいレール首里駅から徒歩2分"
-    }
-  ]
+var SCHEDULE_URL = "https://keigo-fujiwara.github.io/new_year_2027_demo/src/new_year_2027/data/schedule.json";
+var LINE_URLS = {
+  "京大本校": "https://page.line.me/942ydzjx?oat_content=url&openQrModal=true",
+  "梅田校": "https://line.me/R/ti/p/@759lvtlr?openQrModal=true",
+  "飯田橋校": "https://line.me/R/ti/p/@028tlecq?oat_content=url&ts=07221501&openQrModal=true",
+  "首里校": "https://line.me/R/ti/p/@153tdlvg?ts=07221502&oat_content=url&openQrModal=true"
 };
 
 function doGet() {
@@ -137,6 +76,7 @@ function prepareGoogleForm() {
   trySet(function() { form.setShowLinkToRespondAgain(false); });
   trySet(function() { form.setAllowResponseEdits(false); });
 
+  removeUnknownItems(form);
   QUESTIONS.forEach(function(spec) {
     configureItem(ensureItem(form, spec));
   });
@@ -175,10 +115,39 @@ function submitToGoogleForm(data) {
 }
 
 function getViewModel() {
-  return {
-    grades: GRADES,
-    campuses: buildCampuses()
-  };
+  try {
+    return {
+      grades: GRADES,
+      campuses: buildCampuses(),
+      error: ""
+    };
+  } catch (error) {
+    return {
+      grades: GRADES,
+      campuses: [],
+      error: "講座情報を読み込めませんでした。"
+    };
+  }
+}
+
+function loadCatalog() {
+  if (loadCatalog.cache) return loadCatalog.cache;
+  var stored = CacheService.getScriptCache().get("courses-json");
+  if (stored) {
+    loadCatalog.cache = JSON.parse(stored);
+    return loadCatalog.cache;
+  }
+    var response = UrlFetchApp.fetch(SCHEDULE_URL + "?t=" + new Date().getTime(), {
+    muteHttpExceptions: true,
+    followRedirects: true
+  });
+  if (response.getResponseCode() !== 200) {
+    throw new Error("講座情報を読み込めませんでした。");
+  }
+  var catalog = JSON.parse(response.getContentText() || "{}");
+  CacheService.getScriptCache().put("courses-json", JSON.stringify(catalog), 60);
+  loadCatalog.cache = catalog;
+  return catalog;
 }
 
 function formDescription() {
@@ -207,6 +176,41 @@ function getForm() {
   throw new Error("Googleフォームに紐づいたスクリプトから実行してください。スタンドアロンの場合は、スクリプト プロパティ FORM_ID にフォームIDを設定してください。");
 }
 
+function clearPageNavigation(form) {
+  var items = form.getItems(FormApp.ItemType.MULTIPLE_CHOICE);
+  for (var i = 0; i < items.length; i += 1) {
+    var choiceItem = items[i].asMultipleChoiceItem();
+    var choices = choiceItem.getChoices();
+    var plain = [];
+    for (var j = 0; j < choices.length; j += 1) {
+      plain.push(choiceItem.createChoice(choices[j].getValue()));
+    }
+    if (plain.length > 0) choiceItem.setChoices(plain);
+  }
+}
+
+function removeUnknownItems(form) {
+  clearPageNavigation(form);
+  var allowed = {};
+  QUESTIONS.forEach(function(spec) { allowed[spec.title] = true; });
+  var seen = {};
+  var items = form.getItems();
+  var removing = [];
+  for (var i = 0; i < items.length; i += 1) {
+    var title = items[i].getTitle();
+    if (!allowed[title] || seen[title]) removing.push(items[i].getId());
+    else seen[title] = true;
+  }
+  removing.forEach(function(id) {
+    var item = form.getItemById(id);
+    if (item && item.getType() !== FormApp.ItemType.PAGE_BREAK) form.deleteItem(item);
+  });
+  removing.forEach(function(id) {
+    var item = form.getItemById(id);
+    if (item && item.getType() === FormApp.ItemType.PAGE_BREAK) form.deleteItem(item);
+  });
+}
+
 function ensureItem(form, spec) {
   var item = findItemByTitle(form, spec.title);
   if (item && item.getType() !== spec.type) {
@@ -224,36 +228,15 @@ function ensureItem(form, spec) {
 }
 
 function arrangeFormPages(form) {
-  var applyPage = ensurePageBreak(form, APPLY_PAGE_TITLE);
-  var declinePage = ensurePageBreak(form, DECLINE_PAGE_TITLE);
-  declinePage.setTitle(DECLINE_PAGE_TITLE);
-  declinePage.setHelpText("個人情報の取り扱いに同意いただけない場合は、お申し込みできません。");
-  trySet(function() { declinePage.setGoToPage(FormApp.PageNavigationType.SUBMIT); });
-
-  placeItem(form, findItemByTitle(form, "個人情報の取り扱いへの同意"), 0);
-  placeItem(form, applyPage, 1);
-  QUESTIONS.slice(1).forEach(function(spec, index) {
-    placeItem(form, findItemByTitle(form, spec.title), index + 2);
+  QUESTIONS.forEach(function(spec, index) {
+    placeItem(form, findItemByTitle(form, spec.title), index);
   });
-  placeItem(form, declinePage, form.getItems().length - 1);
-
-  var consent = findItemByTitle(form, "個人情報の取り扱いへの同意").asMultipleChoiceItem();
-  consent.setChoices([
-    consent.createChoice(CONSENT_CHOICE, FormApp.PageNavigationType.CONTINUE),
-    consent.createChoice(CONSENT_DECLINE, declinePage)
-  ]);
-}
-
-function ensurePageBreak(form, title) {
-  var items = form.getItems(FormApp.ItemType.PAGE_BREAK);
-  for (var i = 0; i < items.length; i += 1) {
-    if (items[i].getTitle() === title) return items[i].asPageBreakItem();
-  }
-  return form.addPageBreakItem().setTitle(title);
 }
 
 function placeItem(form, item, index) {
-  if (item && item.getIndex() !== index) form.moveItem(item, index);
+  if (!item) return;
+  var from = item.getIndex();
+  if (from !== index) form.moveItem(from, index);
 }
 
 function addItem(form, type) {
@@ -266,13 +249,6 @@ function addItem(form, type) {
 
 function configureItem(item) {
   var title = item.getTitle();
-  if (title === "個人情報の取り扱いへの同意") {
-    item.asMultipleChoiceItem()
-      .setHelpText("")
-      .showOtherOption(false)
-      .setRequired(true);
-    return;
-  }
   if (title === "新学年") {
     item.asMultipleChoiceItem()
       .setChoiceValues(GRADES)
@@ -309,9 +285,6 @@ function configureItem(item) {
 }
 
 function fillResponse(form, response, data) {
-  var consent = requireItem(form, "個人情報の取り扱いへの同意", FormApp.ItemType.MULTIPLE_CHOICE);
-  response.withItemResponse(consent.asMultipleChoiceItem().createResponse(data.consent));
-
   var grade = requireItem(form, "新学年", FormApp.ItemType.MULTIPLE_CHOICE);
   response.withItemResponse(grade.asMultipleChoiceItem().createResponse(data.grade));
 
@@ -565,39 +538,67 @@ function findOpenCampus(name) {
 }
 
 function campusNames() {
-  return (CATALOG.campuses || []).map(function(campus) {
+  var catalog = loadCatalog();
+  return (catalog.campuses || []).filter(function(campus) {
+    return campus.name && !campus.hidden;
+  }).map(function(campus) {
     return campus.name;
-  }).filter(function(name) {
-    return !!name;
   });
 }
 
+function scheduleDate(year, value) {
+  var parts = String(value || "").split("/");
+  if (parts.length !== 2) return "";
+  var month = Number(parts[0]);
+  var day = Number(parts[1]);
+  if (!month || !day) return "";
+  return year + "-" + ("0" + month).slice(-2) + "-" + ("0" + day).slice(-2);
+}
+
 function buildCampuses() {
-  var closeDaysBefore = Number(CATALOG.closeDaysBefore);
-  var deadline = isFinite(closeDaysBefore) ? closeDaysBefore : 2;
-  var displayMonth = typeof CATALOG.displayMonth === "string" ? CATALOG.displayMonth : "";
-  var commonCourses = Array.isArray(CATALOG.commonCourses) ? CATALOG.commonCourses : [];
-  return (CATALOG.campuses || []).map(function(campus) {
-    var source = commonCourses.length > 0 ? commonCourses : (campus.courses || []);
-    var courses = source.slice().sort(compareCourses).filter(function(course) {
-      return course && course.date && course.title &&
-        isCourseOpen(course.date, deadline) &&
-        isDisplayedMonth(course.date, displayMonth);
-    }).map(formatCourse);
-    var mapQuery = ((campus.postalCode || "") + " " + (campus.address || "")).trim();
+  var schedule = loadCatalog();
+  var year = Number(schedule.year);
+  var holidays = {};
+  (schedule.holidays || []).forEach(function(value) { holidays[value] = true; });
+  var items = Array.isArray(schedule.items) ? schedule.items : [];
+  return (schedule.campuses || []).filter(function(campus) {
+    return campus.name && !campus.hidden;
+  }).map(function(campus) {
+    var address = Array.isArray(campus.address) ? campus.address.filter(Boolean).join(" ") : "";
+    var access = Array.isArray(campus.access) ? campus.access.filter(Boolean).join(" ") : "";
+    var courses = [];
+    items.forEach(function(item) {
+      if (item.campus !== campus.key) return;
+      var time = String(item.time || "").split("-");
+      var date = scheduleDate(year, item.date);
+      (item.events || []).forEach(function(event) {
+        if (!event.name || !date || !time[0] || !time[1]) return;
+        courses.push({
+          title: event.name,
+          date: date,
+          start: time[0],
+          end: time[1],
+          holiday: !!holidays[item.date]
+        });
+      });
+    });
+    courses.sort(compareCourses);
+    var mapQuery = ((campus.zip || "") + " " + address).trim();
     return {
       name: campus.name,
-      lineUrl: campus.lineUrl || "",
-      postalCode: campus.postalCode || "",
-      address: campus.address || "",
-      access: campus.access || "",
-      mapUrl: campus.address
+      lineUrl: LINE_URLS[campus.name] || "",
+      postalCode: campus.zip || "",
+      address: address,
+      access: access,
+      mapUrl: address
         ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(mapQuery)
         : "",
-      courses: courses
+      courses: courses.filter(function(course) {
+        return isCourseOpen(course.date, 2);
+      }).map(formatCourse)
     };
   }).filter(function(campus) {
-    return campus.name && campus.courses.length > 0;
+    return campus.courses.length > 0;
   });
 }
 
@@ -605,11 +606,6 @@ function compareCourses(a, b) {
   if (a.date !== b.date) return a.date < b.date ? -1 : 1;
   if ((a.start || "") !== (b.start || "")) return (a.start || "") < (b.start || "") ? -1 : 1;
   return String(a.title || "").localeCompare(String(b.title || ""), "ja");
-}
-
-function isDisplayedMonth(dateStr, displayMonth) {
-  if (!displayMonth) return true;
-  return String(dateStr || "").indexOf(displayMonth + "-") === 0;
 }
 
 function isCourseOpen(dateStr, closeDaysBefore) {
@@ -637,7 +633,7 @@ function formatCourse(course) {
   var weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
   var isSaturday = weekday === "土";
   var isSunday = weekday === "日";
-  var weekdayLabel = isSaturday || isSunday ? weekday : weekday + "・祝";
+  var weekdayLabel = isSaturday || isSunday ? weekday : (course.holiday ? weekday + "祝" : weekday);
   var dateText = month + "月" + day + "日";
   var timeText = course.start + "-" + course.end;
   var datetime = dateText + "（" + weekdayLabel + "）" + timeText;
@@ -647,7 +643,7 @@ function formatCourse(course) {
     title: course.title,
     dateText: dateText,
     weekdayLabel: weekdayLabel,
-    weekdayClass: isSaturday ? "is-saturday" : "is-sunday-or-holiday",
+    weekdayClass: isSaturday ? "is-saturday" : (isSunday || course.holiday ? "is-sunday-or-holiday" : ""),
     timeText: timeText,
     datetime: datetime,
     durationMinutes: (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute),

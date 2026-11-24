@@ -170,14 +170,8 @@
       "access": "飯田橋駅から徒歩5分"
     },
     {
-      "name": "横浜校",
-      "lineUrl": "https://page.line.me/016pbnwr?oat_content=url&openQrModal=true",
-      "postalCode": "〒220-0012",
-      "address": "神奈川県横浜市西区みなとみらい 2-2-1 横浜ランドマークタワー 14F",
-      "access": "みなとみらい駅から徒歩2分"
-    },
-    {
       "name": "首里校",
+      "hidden": true,
       "lineUrl": "https://line.me/R/ti/p/@153tdlvg?ts=07221502&oat_content=url&openQrModal=true",
       "postalCode": "〒903-0806",
       "address": "沖縄県那覇市首里汀良町１-２７",

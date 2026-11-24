@@ -85,7 +85,7 @@ function formatCourse(course) {
   const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
   const isSaturday = weekday === "土";
   const isSunday = weekday === "日";
-  const weekdayLabel = isSaturday || isSunday ? weekday : `${weekday}・祝`;
+  const weekdayLabel = isSaturday || isSunday ? weekday : (course.holiday ? `${weekday}祝` : weekday);
   const dateText = `${month}月${day}日`;
   const timeText = `${course.start}-${course.end}`;
   const datetime = `${dateText}（${weekdayLabel}）${timeText}`;
@@ -96,7 +96,7 @@ function formatCourse(course) {
     title: course.title,
     dateText,
     weekdayLabel,
-    weekdayClass: isSaturday ? "is-saturday" : "is-sunday-or-holiday",
+    weekdayClass: isSaturday ? "is-saturday" : (isSunday || course.holiday ? "is-sunday-or-holiday" : ""),
     timeText,
     datetime,
     durationMinutes,
@@ -104,32 +104,60 @@ function formatCourse(course) {
   };
 }
 
+const LINE_URLS = {
+  "京大本校": "https://page.line.me/942ydzjx?oat_content=url&openQrModal=true",
+  "梅田校": "https://line.me/R/ti/p/@759lvtlr?openQrModal=true",
+  "飯田橋校": "https://line.me/R/ti/p/@028tlecq?oat_content=url&ts=07221501&openQrModal=true",
+  "首里校": "https://line.me/R/ti/p/@153tdlvg?ts=07221502&oat_content=url&openQrModal=true"
+};
+
+function scheduleDate(year, value) {
+  const parts = String(value || "").split("/");
+  if (parts.length !== 2) return "";
+  const month = Number(parts[0]);
+  const day = Number(parts[1]);
+  if (!month || !day) return "";
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 async function loadCampuses() {
-  const response = await fetch("courses.json?v=7");
+  const response = await fetch(`https://keigo-fujiwara.github.io/new_year_2027_demo/src/new_year_2027/data/schedule.json?t=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("講座情報を読み込めませんでした。");
   }
-  const catalog = await response.json();
-  const closeDaysBefore = Number(catalog.closeDaysBefore);
-  const deadline = Number.isFinite(closeDaysBefore) ? closeDaysBefore : 2;
-  const displayMonth = typeof catalog.displayMonth === "string" ? catalog.displayMonth : "";
-  const commonCourses = Array.isArray(catalog.commonCourses) ? catalog.commonCourses : [];
-  CAMPUSES = (catalog.campuses || []).map(campus => ({
-    name: campus.name,
-    lineUrl: campus.lineUrl,
-    postalCode: campus.postalCode || "",
-    address: campus.address || "",
-    access: campus.access || "",
-    mapUrl: campus.address
-      ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(`${campus.postalCode || ""} ${campus.address}`.trim())
-      : "",
-    courses: (commonCourses.length > 0 ? commonCourses : (campus.courses || []))
-      .slice()
+  const schedule = await response.json();
+  const year = Number(schedule.year);
+  const holidays = new Set(Array.isArray(schedule.holidays) ? schedule.holidays : []);
+  const items = Array.isArray(schedule.items) ? schedule.items : [];
+  CAMPUSES = (schedule.campuses || []).filter(campus => !campus.hidden).map(campus => {
+    const address = Array.isArray(campus.address) ? campus.address.filter(Boolean).join(" ") : "";
+    const access = Array.isArray(campus.access) ? campus.access.filter(Boolean).join(" ") : "";
+    const courses = items.filter(item => item.campus === campus.key).flatMap(item => {
+      const time = String(item.time || "").split("-");
+      const date = scheduleDate(year, item.date);
+      return (item.events || []).map(event => ({
+        title: event.name,
+        date,
+        start: time[0] || "",
+        end: time[1] || "",
+        holiday: holidays.has(item.date)
+      }));
+    }).filter(course => course.title && course.date && course.start && course.end)
       .sort(compareCourses)
-      .filter(course => isCourseOpen(course.date, deadline))
-      .filter(course => !displayMonth || course.date.startsWith(`${displayMonth}-`))
-      .map(formatCourse)
-  })).filter(campus => campus.name && campus.courses.length > 0);
+      .filter(course => isCourseOpen(course.date, 2))
+      .map(formatCourse);
+    return {
+      name: campus.name,
+      lineUrl: LINE_URLS[campus.name] || "",
+      postalCode: campus.zip || "",
+      address,
+      access,
+      mapUrl: address
+        ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(`${campus.zip || ""} ${address}`.trim())
+        : "",
+      courses
+    };
+  }).filter(campus => campus.name && campus.courses.length > 0);
 }
 
 function compareCourses(a, b) {
