@@ -65,10 +65,15 @@ function saveApplication(data) {
   }
   appendApplication(data);
   var lineSent = false;
+  var lineMessage = "";
   if (data.deliverLine && data.userId) {
-    lineSent = pushLineMessage(data.userId, data.messageText, data.flexMessage).ok;
+    var pushResult = pushLineMessage(data.userId, data.messageText, data.flexMessage);
+    lineSent = pushResult.ok;
+    lineMessage = pushResult.ok ? "" : pushResult.message;
+  } else if (data.deliverLine) {
+    lineMessage = "確認メッセージは、公式アカウントのトークから開いたときだけ届きます。";
   }
-  return { status: "success", lineSent: lineSent, message: "" };
+  return { status: "success", lineSent: lineSent, message: lineMessage };
 }
 
 function getLineDisplayName(userId) {
@@ -523,29 +528,46 @@ function pushLineMessage(userId, text, flexMessage) {
     };
   }
 
+  var messages = [];
+  if (flexMessage && flexMessage.type) messages.push(flexMessage);
+  if (text) messages.push({ type: "text", text: text });
+  if (messages.length === 0) {
+    return {
+      ok: false,
+      message: "LINEへ申込内容を送れませんでした。公式アカウントとのトークから開き直してください。"
+    };
+  }
+  var last = { ok: false, message: "LINEへ申込内容を送れませんでした。しばらくしてから、もう一度お試しください。" };
+  for (var i = 0; i < messages.length; i += 1) {
+    last = postLinePush(userId, token, messages[i]);
+    if (last.ok) return last;
+  }
+  return last;
+}
+
+function postLinePush(userId, token, message) {
   var response = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
     method: "post",
     contentType: "application/json",
     headers: { Authorization: "Bearer " + token },
     payload: JSON.stringify({
       to: userId,
-      messages: [flexMessage && flexMessage.type ? flexMessage : { type: "text", text: text }]
+      messages: [message]
     }),
     muteHttpExceptions: true
   });
   if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
     return { ok: true, message: "" };
   }
-
   var body = response.getContentText();
   if (body.indexOf("INVALID_RECEIVER") !== -1) {
     return {
       ok: false,
-      message: "この公式アカウントを友だち追加してから、もう一度申し込んでください。"
+      message: "確認メッセージを届けるには、この公式アカウントを友だち追加してください。"
     };
   }
   return {
     ok: false,
-    message: "LINEへ申込内容を送れませんでした。しばらくしてから、もう一度お試しください。"
+    message: "確認メッセージをトークへ送れませんでした。公式アカウントのトークから開き直してください。"
   };
 }

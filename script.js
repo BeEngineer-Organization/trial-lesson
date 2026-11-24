@@ -659,10 +659,10 @@ function buildFlexMessage(data) {
   };
 }
 
-function showDone(campusName) {
+function showDone(campusName, lineNote) {
   const campus = findCampus(campusName);
   document.getElementById("done-thanks").textContent =
-    `申込ありがとうございました。\n${campusName}からのご連絡をお待ちください。`;
+    `申込ありがとうございました。\n${campusName}からのご連絡をお待ちください。${lineNote ? `\n\n${lineNote}` : ""}`;
   document.getElementById("done-guide").textContent =
     `今後のご連絡は、\n${campusName}専用LINE\nで行うとスムーズになります。\n友だち追加をお願いいたします。`;
   const link = document.getElementById("campus-line-link");
@@ -802,6 +802,7 @@ async function submitApplication() {
 
   let sentInChat = false;
   let lineDelivered = false;
+  let lineNote = "";
   try {
     const messageText = buildMessage(data);
     const flexMessage = buildFlexMessage(data);
@@ -831,9 +832,10 @@ async function submitApplication() {
         }
         throw new Error(detail || "申込を保存できませんでした。");
       }
+      if (index === 0 && result.message) lineNote = result.message;
       lineDelivered = lineDelivered || Boolean(result.lineSent);
     }
-    showDone(data.campus);
+    showDone(data.campus, lineDelivered ? "" : lineNote);
   } catch (err) {
     const detail = err && err.message ? err.message : "送信できませんでした。もう一度お試しください。";
     if (lineDelivered && detail.indexOf("スプレッドシート") === -1) {
@@ -850,12 +852,8 @@ async function submitApplication() {
 
 function closeLine() {
   try {
-    if (liffInClient() && liff.closeWindow) liff.closeWindow();
+    if (typeof liff !== "undefined" && liff.closeWindow) liff.closeWindow();
   } catch (error) {}
-  window.setTimeout(() => {
-    if (document.visibilityState === "hidden") return;
-    window.location.href = "line://nv/chat";
-  }, 400);
 }
 
 function startApplication() {

@@ -92,12 +92,8 @@ function prepareGoogleForm() {
 
 function cleanupResponseColumns() {
   var form = getForm();
-  var spreadsheetId = destinationId(form);
-  if (!spreadsheetId) throw new Error("回答先のスプレッドシートがありません。");
-  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-  var sheet = findResponseSheet(spreadsheet, form);
+  var sheet = responseSheet(form);
   var sheetName = sheet.getName();
-  form.removeDestination();
   var lastColumn = sheet.getLastColumn();
   var lastRow = Math.max(sheet.getLastRow(), 1);
   var headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
@@ -152,7 +148,7 @@ function submitToGoogleForm(data) {
     var check = validateApplication(data);
     if (!check.ok) return check;
     var form = getForm();
-    var sheet = ensureSplitSheet(form);
+    var sheet = responseSheet(form);
     appendCourseRows(sheet, check.value);
     var mailResult = deliverConfirmationMail(check.value);
     return { ok: true, mailSent: mailResult.ok, message: mailResult.message };
@@ -176,11 +172,6 @@ function splitCourseColumns() {
 
 function ensureSplitSheet(form) {
   var sheet = responseSheet(form);
-  if (destinationId(form)) {
-    try {
-      form.removeDestination();
-    } catch (error) {}
-  }
   rewriteCourseColumn(sheet);
   return sheet;
 }
@@ -198,7 +189,7 @@ function responseSheet(form) {
   var spreadsheetId = destinationId(form) || props.getProperty("RESPONSE_SPREADSHEET_ID") || "";
   var spreadsheet = spreadsheetId ? SpreadsheetApp.openById(spreadsheetId) : findSpreadsheetNearForm(form);
   if (!spreadsheet) {
-    throw new Error("回答先のスプレッドシートが見つかりません。フォームと同じフォルダに、回答用のスプレッドシートがあるか確認してください。");
+    throw new Error("回答先のスプレッドシートがありません。フォームの「回答」から、スプレッドシートを指定してください。");
   }
   props.setProperty("RESPONSE_SPREADSHEET_ID", spreadsheet.getId());
   var savedName = props.getProperty("RESPONSE_SHEET_NAME");
@@ -249,7 +240,7 @@ function findSpreadsheetNearForm(form) {
       if (spreadsheet && spreadsheetHasApplication(spreadsheet, formId)) return spreadsheet;
     }
   }
-  if (!title) return null;
+  if (!title) return searchSpreadsheetByText(formId);
   var query = 'mimeType = "' + MimeType.GOOGLE_SHEETS + '" and title contains "' + title.replace(/"/g, "") + '"';
   var found = DriveApp.searchFiles(query);
   var checked = 0;
@@ -257,6 +248,17 @@ function findSpreadsheetNearForm(form) {
     checked += 1;
     var match = openSpreadsheet(found.next().getId());
     if (match && spreadsheetHasApplication(match, formId)) return match;
+  }
+  return searchSpreadsheetByText(formId);
+}
+
+function searchSpreadsheetByText(formId) {
+  var found = DriveApp.searchFiles('mimeType = "' + MimeType.GOOGLE_SHEETS + '" and fullText contains "\'申込講座\'"');
+  var checked = 0;
+  while (found.hasNext() && checked < 20) {
+    checked += 1;
+    var spreadsheet = openSpreadsheet(found.next().getId());
+    if (spreadsheet && spreadsheetHasApplication(spreadsheet, formId)) return spreadsheet;
   }
   return null;
 }
@@ -403,6 +405,7 @@ function appendCourseRows(sheet, data) {
       if (header === "校舎") return data.campus;
       if (header === "講座名") return course.title;
       if (header === "日時") return course.datetime;
+      if (header === "申込講座") return course.title + (course.datetime ? " " + course.datetime : "");
       if (header === "参加者氏名") return data.name;
       if (header === "学校名") return data.school;
       if (header === "メールアドレス") return data.email;
