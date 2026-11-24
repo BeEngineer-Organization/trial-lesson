@@ -451,6 +451,10 @@ function showStep(stepNumber) {
   if (stepNumber === 7) renderConfirm();
   const active = document.querySelector(".step.is-active");
   if (active) refreshNav(active);
+  if (active && window.matchMedia && window.matchMedia("(pointer: fine)").matches) {
+    const input = active.querySelector("input[type='text'], input[type='tel']");
+    if (input) input.focus();
+  }
 }
 
 function goNext(step) {
@@ -868,6 +872,33 @@ async function submitApplication() {
   }
 }
 
+function isShown(id) {
+  const element = document.getElementById(id);
+  return Boolean(element) && element.style.display !== "none";
+}
+
+function handleEnterKey(event) {
+  if (event.key !== "Enter" || event.isComposing || event.keyCode === 229) return;
+  if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+  const target = event.target;
+  if (target && target.closest && target.closest("button, a, textarea")) return;
+  if (!document.getElementById("loading-overlay").hidden) return;
+
+  let button = null;
+  if (isShown("consent-step")) {
+    button = document.getElementById("consent-btn");
+  } else if (isShown("apply-flow")) {
+    const step = document.querySelector(".step.is-active");
+    if (!step) return;
+    button = step.dataset.step === "7"
+      ? document.getElementById("submit-btn")
+      : step.querySelector(".next-btn");
+  }
+  if (!button) return;
+  event.preventDefault();
+  if (!button.disabled) button.click();
+}
+
 function closeLine(event) {
   if (!liffInClient() || !liff.closeWindow) return;
   if (event) event.preventDefault();
@@ -974,6 +1005,7 @@ function setupForm() {
   document.getElementById("campus-preview-toggle").addEventListener("click", toggleCampusPreview);
   document.getElementById("restart-btn").addEventListener("click", resetForm);
   document.getElementById("back-btn").addEventListener("click", closeLine);
+  document.addEventListener("keydown", handleEnterKey);
   document.getElementById("campus-line-link").addEventListener("click", event => {
     const url = event.currentTarget.href;
     if (!url || !liffInClient() || !liff.openWindow) return;

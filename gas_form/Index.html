@@ -547,7 +547,7 @@
 
     <div id="consent-step">
       <h2>春の無料体験講座のお申し込み</h2>
-      <p class="consent-lead">安心してお申し込みいただくために、個人情報の取り扱いについてご確認ください。</p>
+      <p class="consent-lead">安心してお申し込みいただくために、<br>個人情報の取り扱いについてご確認ください。</p>
       <div class="consent-box">
         <p class="consent-title">個人情報の利用について</p>
         <p>お申し込みの際に、新学年・校舎・申込講座・参加者氏名・学校名・メールアドレス・電話番号を取得します。</p>
@@ -1032,11 +1032,15 @@
 
     function showDone(campusName, mailNote) {
       const campus = findCampus(campusName);
-      const extra = mailNote
-        ? mailNote
-        : "確認メールを keigo_fujiwara@waotech.jp から送信しました。\n届かない場合は、迷惑メールもご確認ください。";
-      document.getElementById("done-thanks").textContent =
-        `申込ありがとうございました。\n${campusName}からのご連絡をお待ちください。\n\n${extra}`;
+      const thanks = document.getElementById("done-thanks");
+      thanks.textContent = `申込ありがとうございました。\n${campusName}からのご連絡をお待ちください。\n\n`;
+      if (mailNote) {
+        thanks.append(mailNote);
+      } else {
+        const sender = document.createElement("strong");
+        sender.textContent = "keigo_fujiwara@waotech.jp";
+        thanks.append("確認メールを\n", sender, " から送信しました。\n届かない場合は、迷惑メールもご確認ください。");
+      }
       const guide = document.getElementById("done-guide");
       const link = document.getElementById("campus-line-link");
       if (campus && campus.lineUrl) {
