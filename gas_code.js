@@ -71,7 +71,7 @@ function saveApplication(data) {
     lineSent = pushResult.ok;
     lineMessage = pushResult.ok ? "" : pushResult.message;
   } else if (data.deliverLine) {
-    lineMessage = "確認メッセージは、公式アカウントのトークから開いたときだけ届きます。";
+    lineMessage = "確認メッセージは、公式アカウントとのトークから開いたときだけ、そのトークに届きます。";
   }
   return { status: "success", lineSent: lineSent, message: lineMessage };
 }

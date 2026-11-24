@@ -698,20 +698,38 @@ function liffInClient() {
   }
 }
 
-async function trySendInChat(message, text) {
+async function canSendInChat() {
   if (!liffInClient()) return false;
   try {
-    await liff.sendMessages([message]);
-    return true;
+    const context = liff.getContext ? liff.getContext() : null;
+    const type = context && context.type;
+    if (!["utou", "group", "room"].includes(type)) return false;
   } catch (error) {
-    if (!text) return false;
-    try {
-      await liff.sendMessages([{ type: "text", text: text }]);
-      return true;
-    } catch (textError) {
-      return false;
-    }
+    return false;
   }
+  try {
+    if (liff.permission && liff.permission.query) {
+      const status = await liff.permission.query("chat_message.write");
+      if (status && status.state !== "granted" && liff.permission.requestAll) {
+        await liff.permission.requestAll();
+      }
+    }
+  } catch (error) {}
+  return true;
+}
+
+async function trySendInChat(message, text) {
+  if (!(await canSendInChat())) return false;
+  const payloads = [];
+  if (text) payloads.push([{ type: "text", text: text }]);
+  if (message) payloads.push([message]);
+  for (let index = 0; index < payloads.length; index += 1) {
+    try {
+      await liff.sendMessages(payloads[index]);
+      return true;
+    } catch (error) {}
+  }
+  return false;
 }
 
 async function getLineProfile() {
@@ -852,8 +870,12 @@ async function submitApplication() {
 
 function closeLine() {
   try {
-    if (typeof liff !== "undefined" && liff.closeWindow) liff.closeWindow();
+    if (liffInClient() && liff.closeWindow) {
+      liff.closeWindow();
+      return;
+    }
   } catch (error) {}
+  window.location.href = "https://line.me/R/nv/chat";
 }
 
 function startApplication() {
