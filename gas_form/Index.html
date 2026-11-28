@@ -549,6 +549,103 @@
       text-align: center;
       padding: 15px;
     }
+
+    .pc-only { display: none; }
+
+    @media (min-width: 768px) {
+      .sp-only { display: none; }
+      .pc-only { display: inline; }
+
+      body {
+        padding: 40px 24px;
+        font-size: 17px;
+      }
+
+      .card {
+        max-width: 720px;
+        padding: 40px 56px;
+      }
+
+      .brand-logo {
+        width: 200px;
+        margin-bottom: 20px;
+      }
+
+      h2 { font-size: 24px; }
+      .question { font-size: 20px; }
+      .consent-lead { font-size: 16px; }
+      .consent-box { font-size: 15px; }
+
+      #grade-list,
+      #campus-list,
+      .course-group-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      #grade-list .choice,
+      #campus-list .choice,
+      .course-group-options .choice {
+        margin-bottom: 0;
+      }
+
+      .course-group-options { padding: 12px 0 4px; }
+      .course-group-options .hint { grid-column: 1 / -1; }
+
+      .choice { font-size: 17px; }
+      .choice:hover { border-color: #a9deb2; }
+      .choice.is-selected:hover { border-color: #06C755; }
+
+      .step input[type="text"],
+      .step input[type="tel"],
+      .step input[type="email"] {
+        font-size: 17px;
+      }
+
+      .next-btn,
+      #submit-btn,
+      #consent-btn,
+      #restart-btn,
+      #back-btn,
+      .line-link {
+        display: block;
+        width: 100%;
+        max-width: 360px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .next-btn,
+      #submit-btn {
+        margin-top: 8px;
+      }
+
+      button.confirm-item {
+        display: grid;
+        grid-template-columns: 140px minmax(0, 1fr);
+        align-items: start;
+        gap: 16px;
+        margin-bottom: 0;
+        padding: 14px 16px;
+        border: 0;
+        border-bottom: 1px solid #e6e6e6;
+        border-radius: 0;
+      }
+
+      button.confirm-item:first-child { border-top: 1px solid #e6e6e6; }
+      button.confirm-item:hover { background: #f7fcf8; }
+
+      #confirm-list { margin-bottom: 24px; }
+
+      .confirm-label {
+        margin: 2px 0 0;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .confirm-value { font-size: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -641,7 +738,7 @@
 
         <section class="step" data-step="8">
           <p class="question">申込内容の確認</p>
-          <p class="edit-hint">下の項目をタップすると、<br>その内容を修正できます。</p>
+          <p class="edit-hint">下の項目を<span class="sp-only">タップ</span><span class="pc-only">クリック</span>すると、<br>その内容を修正できます。</p>
           <p class="mail-from">確認メールは <strong>keigo_fujiwara@waotech.jp</strong> から届きます。</p>
           <div id="confirm-list"></div>
           <button type="button" id="submit-btn">申込</button>
