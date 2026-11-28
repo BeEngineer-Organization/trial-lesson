@@ -552,6 +552,60 @@
 
     .pc-only { display: none; }
 
+    #single-actions,
+    #edit-btn { display: none; }
+
+    .field-error {
+      margin: -10px 0 14px;
+      color: #d9534f;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .field-error[hidden] { display: none; }
+    .step.has-error .question { color: #d9534f; }
+
+    #apply-form.is-single .step {
+      display: block;
+      padding: 28px 0;
+      border-top: 1px solid #e6e6e6;
+    }
+
+    #apply-form.is-single .step[data-step="1"] {
+      padding-top: 8px;
+      border-top: 0;
+    }
+
+    #apply-form.is-single .progress,
+    #apply-form.is-single .next-btn { display: none; }
+
+    #apply-form.is-single .question.is-centered,
+    #apply-form.is-single .hint.is-readable { text-align: left; }
+
+    #apply-form.is-single #single-actions {
+      display: block;
+      padding-top: 28px;
+      border-top: 1px solid #e6e6e6;
+    }
+
+    #apply-form.is-single #edit-btn {
+      display: block;
+      margin-top: 10px;
+      background: #fff;
+      color: #666;
+      border: 1px solid #ccc;
+    }
+
+    #apply-form.is-single .step[data-step="8"],
+    #apply-form.is-single.is-confirming .step,
+    #apply-form.is-single.is-confirming #single-actions { display: none; }
+
+    #apply-form.is-single.is-confirming .step[data-step="8"] {
+      display: block;
+      padding-top: 0;
+      border-top: 0;
+    }
+
     @media (min-width: 768px) {
       .sp-only { display: none; }
       .pc-only { display: inline; }
@@ -605,6 +659,8 @@
 
       .next-btn,
       #submit-btn,
+      #to-confirm-btn,
+      #edit-btn,
       #consent-btn,
       #restart-btn,
       #back-btn,
@@ -736,12 +792,17 @@
           <button type="button" class="next-btn" disabled>確認画面へ</button>
         </section>
 
+        <div id="single-actions">
+          <button type="button" id="to-confirm-btn">確認画面へ進む</button>
+        </div>
+
         <section class="step" data-step="8">
           <p class="question">申込内容の確認</p>
           <p class="edit-hint">下の項目を<span class="sp-only">タップ</span><span class="pc-only">クリック</span>すると、<br>その内容を修正できます。</p>
           <p class="mail-from">確認メールは <strong>keigo_fujiwara@waotech.jp</strong> から届きます。</p>
           <div id="confirm-list"></div>
           <button type="button" id="submit-btn">申込</button>
+          <button type="button" id="edit-btn">入力画面に戻る</button>
         </section>
       </form>
     </div>
@@ -918,10 +979,65 @@
       return true;
     }
 
+    const SINGLE_PAGE_QUERY = "(min-width: 768px)";
+    const INPUT_STEPS = [1, 2, 3, 4, 5, 6, 7];
+    const FIELD_ERRORS = {
+      1: "※ まだ選択されていません。",
+      2: "※ まだ選択されていません。",
+      3: "※ 1つ以上選択してください。",
+      4: "※ まだ入力されていません。",
+      5: "※ まだ入力されていません。",
+      6: "※ 同じメールアドレスを2回入力してください。",
+      7: "※ 10桁または11桁で入力してください。"
+    };
+
+    function isSinglePage() {
+      return Boolean(window.matchMedia) && window.matchMedia(SINGLE_PAGE_QUERY).matches;
+    }
+
+    function stepElement(stepNumber) {
+      return document.querySelector(`.step[data-step='${stepNumber}']`);
+    }
+
+    function setFieldError(stepNumber, on) {
+      const step = stepElement(stepNumber);
+      if (!step) return;
+      step.classList.toggle("has-error", on);
+      let error = step.querySelector(".field-error");
+      if (!error) {
+        if (!on) return;
+        error = document.createElement("p");
+        error.className = "field-error";
+        step.querySelector(".question").after(error);
+      }
+      error.textContent = FIELD_ERRORS[stepNumber];
+      error.hidden = !on;
+    }
+
+    function syncCoursesForCampus() {
+      const campus = selectedRadio("campus");
+      if (campus === coursesForCampus) return;
+      clearCourseSelections();
+      coursesForCampus = campus;
+      renderCourses();
+    }
+
+    function goConfirmFromSinglePage() {
+      const invalid = INPUT_STEPS.filter(stepNumber => !isStepValid(stepNumber));
+      INPUT_STEPS.forEach(stepNumber => setFieldError(stepNumber, invalid.includes(stepNumber)));
+      if (invalid.length > 0) {
+        stepElement(invalid[0]).scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      showStep(8);
+    }
+
     function refreshNav(step) {
+      if (!step) return;
+      const stepNumber = Number(step.dataset.step);
+      if (step.classList.contains("has-error") && isStepValid(stepNumber)) setFieldError(stepNumber, false);
       const nextBtn = step.querySelector(".next-btn");
       if (!nextBtn) return;
-      const stepNumber = Number(step.dataset.step);
       nextBtn.disabled = !isStepValid(stepNumber);
       if (stepNumber === 6) updateEmailHint();
       if (returnToConfirm && stepNumber === 2) {
@@ -972,7 +1088,10 @@
         } else {
           label.classList.toggle("is-selected", input.checked);
         }
-        if (name === "campus") renderCampusPreview();
+        if (name === "campus") {
+          renderCampusPreview();
+          if (isSinglePage()) syncCoursesForCampus();
+        }
         refreshNav(label.closest(".step"));
       });
       label.append(input, text);
@@ -995,7 +1114,9 @@
       if (!campus || campus.courses.length === 0) {
         const note = document.createElement("p");
         note.className = "hint";
-        note.textContent = "この校舎で申し込みできる無料体験講座はありません。";
+        note.textContent = campus
+          ? "この校舎で申し込みできる無料体験講座はありません。"
+          : "校舎を選ぶと、申し込みできる講座が表示されます。";
         list.appendChild(note);
         refreshNav(document.querySelector(".step[data-step='3']"));
         return;
@@ -1033,7 +1154,7 @@
         courses.forEach(course => {
           options.appendChild(createChoice("checkbox", "courses", course.label, keep.has(course.label), course));
         });
-        if (courses.some(course => keep.has(course.label))) {
+        if (isSinglePage() || courses.some(course => keep.has(course.label))) {
           options.hidden = false;
           toggle.setAttribute("aria-expanded", "true");
           icon.textContent = "−";
@@ -1106,11 +1227,37 @@
       });
     }
 
+    function showSinglePage(stepNumber) {
+      returnToConfirm = false;
+      if (stepNumber === 8) {
+        renderConfirm();
+        window.scrollTo(0, 0);
+        return;
+      }
+      renderCampusPreview();
+      renderCourses();
+      coursesForCampus = selectedRadio("campus");
+      INPUT_STEPS.forEach(number => refreshNav(stepElement(number)));
+      const target = stepElement(stepNumber);
+      if (stepNumber <= 1) window.scrollTo(0, 0);
+      else target.scrollIntoView({ block: "start" });
+      const input = target.querySelector("input[type='text'], input[type='email'], input[type='tel']");
+      if (input && stepNumber > 1) input.focus({ preventScroll: true });
+    }
+
     function showStep(stepNumber) {
       document.getElementById("status").style.display = "none";
       document.querySelectorAll(".step").forEach(step => {
         step.classList.toggle("is-active", step.dataset.step === String(stepNumber));
       });
+      const single = isSinglePage();
+      const form = document.getElementById("apply-form");
+      form.classList.toggle("is-single", single);
+      form.classList.toggle("is-confirming", single && stepNumber === 8);
+      if (single) {
+        showSinglePage(stepNumber);
+        return;
+      }
       if (stepNumber === 3) renderCourses();
       if (stepNumber === 2) renderCampusPreview();
       if (stepNumber === 8) renderConfirm();
@@ -1272,6 +1419,21 @@
       });
       document.getElementById("apply-form").addEventListener("submit", event => event.preventDefault());
       document.getElementById("submit-btn").addEventListener("click", submitApplication);
+      document.getElementById("to-confirm-btn").addEventListener("click", goConfirmFromSinglePage);
+      document.getElementById("edit-btn").addEventListener("click", () => showStep(1));
+      if (window.matchMedia) {
+        const query = window.matchMedia(SINGLE_PAGE_QUERY);
+        const onLayoutChange = () => {
+          if (!isShown("apply-flow")) return;
+          const confirming = document.getElementById("apply-form").classList.contains("is-confirming");
+          const active = document.querySelector(".step.is-active");
+          const current = confirming ? 8 : Number(active ? active.dataset.step : 1);
+          const firstInvalid = INPUT_STEPS.find(stepNumber => !isStepValid(stepNumber));
+          showStep(query.matches || current === 8 ? current : (firstInvalid || 8));
+        };
+        if (query.addEventListener) query.addEventListener("change", onLayoutChange);
+        else if (query.addListener) query.addListener(onLayoutChange);
+      }
       document.getElementById("consent-btn").addEventListener("click", () => {
         document.getElementById("consent-step").style.display = "none";
         document.getElementById("apply-flow").style.display = "block";
@@ -1298,6 +1460,19 @@
       let button = null;
       if (isShown("consent-step")) {
         button = document.getElementById("consent-btn");
+      } else if (isShown("apply-flow") && isSinglePage()) {
+        if (document.getElementById("apply-form").classList.contains("is-confirming")) {
+          button = document.getElementById("submit-btn");
+        } else {
+          const order = ["participant", "school", "email", "email-confirm", "phone"];
+          const index = target ? order.indexOf(target.id) : -1;
+          if (index >= 0 && index < order.length - 1) {
+            event.preventDefault();
+            document.getElementById(order[index + 1]).focus();
+            return;
+          }
+          button = document.getElementById("to-confirm-btn");
+        }
       } else if (isShown("apply-flow")) {
         const step = document.querySelector(".step.is-active");
         if (!step) return;
